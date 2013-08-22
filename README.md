@@ -82,7 +82,7 @@ The Root namespace is for top-level non-database specific methods while the Data
 
 ### Root
 
-#### ```dirac.connect( connStr [options], [options], [callback] )```
+#### ```dirac.init( connStr [options], [options] )```
 
 Connect to Postgres
 
@@ -90,7 +90,8 @@ __Arguments:__
 
 * Connection String or Options
 * Options
-* Callback ```(error)```
+  - Must contain property called ```connStr```
+  - Will mix into ```pg.defaults```
 
 ___Options:___
 
