@@ -72,4 +72,26 @@ describe ('Root API', function(){
     });
 
   });
+
+  describe ('dirac.unregister', function(){
+
+    it ('should register a new table', function(){
+      dirac.register({
+        name: 'users'
+      , schema: {
+          id: {
+            type: 'serial'
+          , primaryKey: true
+          }
+        , name: { type: 'text' }
+        }
+      });
+
+      assert( dirac.dals.users instanceof dirac.DAL );
+      dirac.unregister( 'users' );
+      assert( !dirac.users );
+    });
+
+  });
+
 });
