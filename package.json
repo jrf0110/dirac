@@ -1,0 +1,31 @@
+{
+  "name": "dirac",
+  "version": "0.0.1",
+  "description": "Node-PG database layer built with MoSQL",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "./node_modules/mocha/bin/mocha test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jrf0110/dirac.git"
+  },
+  "keywords": [
+    "Postgres",
+    "MoSQL",
+    "mongo-sql",
+    "mongo"
+  ],
+  "author": "John Fawcett",
+  "license": "BSD",
+  "gitHead": "f49aed817b0db67e83e2e359ed43d3c2a434992b",
+  "readmeFilename": "README.md",
+  "dependencies": {
+    "mongo-sql": "~2.1.12",
+    "async": "~0.2.9",
+    "pg": "~2.3.1"
+  }
+}
