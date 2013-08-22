@@ -1,4 +1,5 @@
 var assert = require('assert');
+var pg = require('pg');
 var dirac = require('../');
 
 var dbConfig = {
@@ -90,6 +91,16 @@ describe ('Root API', function(){
       assert( dirac.dals.users instanceof dirac.DAL );
       dirac.unregister( 'users' );
       assert( !dirac.users );
+    });
+
+  });
+
+  describe ('dirac.sync', function(){
+
+    it ('should at least create the dirac_schemas table', function(){
+      dirac.sync( function( error ){
+        assert( !error );
+      });
     });
 
   });
