@@ -13,6 +13,7 @@ describe ('Root API', function(){
   it ('should initialize with a connStr', function(){
     dirac.init( connString );
     assert( dirac.options.connString == connString );
+    assert( dirac.dals.dirac instanceof db.DAL );
   });
 
   it ('should initialize with options', function(){
