@@ -13,17 +13,19 @@ describe ('Root API', function(){
   it ('should initialize with a connStr', function(){
     dirac.init( connString );
     assert( dirac.options.connString == connString );
-    assert( dirac.dals.dirac instanceof db.DAL );
+    assert( dirac.dals.dirac_schemas instanceof dirac.DAL );
   });
 
   it ('should initialize with options', function(){
     dirac.init( dbConfig );
     assert( dirac.options.connString == connString );
+    assert( dirac.dals.dirac_schemas instanceof dirac.DAL );
   });
 
   it ('should initialize with default options', function(){
     dirac.init({ database: dbConfig.database });
     assert( dirac.options.connString == connString );
+    assert( dirac.dals.dirac_schemas instanceof dirac.DAL );
   });
 
   it ('should throw an error because missing connString', function(){
