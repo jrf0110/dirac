@@ -1,5 +1,6 @@
 var assert = require('assert');
 var pg = require('pg');
+var async = require('async');
 var dirac = require('../');
 
 var dbConfig = {
@@ -26,7 +27,16 @@ var destroyCreateDb = function( callback ){
       callback();
     });
   });
-}
+};
+
+var tableExists = function( table, callback ){
+  var query = 'SELECT * FROM pg_catalog.pg_tables where tablename = $1';
+
+  dirac.query( query, [ table ], function( error, result ){
+    if ( error ) return callback( error );
+    callback( null, result.rows.length > 0 );
+  });
+};
 
 before( function( done ){
   destroyCreateDb( function( error ){
@@ -128,9 +138,41 @@ describe ('Root API', function(){
         assert( !error )
         dirac.sync( function( error ){
           assert( !error );
-          done();
+          tableExists( 'dirac_schemas', function( error, result ){
+            assert( !error );
+            assert( result );
+            done();
+          });
         });
-      })
+      });
+    });
+
+    it ('should register a table and sync it', function( done ){
+      destroyCreateDb( function( error ){
+        assert( !error )
+
+console.log("HAYO")
+        dirac.register({
+          name: 'users'
+        , schema: {
+            id: {
+              type: 'serial'
+            , primaryKey: true
+            }
+          , name: { type: 'text' }
+          }
+        });
+
+        dirac.sync( function( error ){
+          assert( !error );
+console.log("HAYO")
+          tableExists( 'users', function( error, result ){
+            assert( !error );
+            assert( result );
+            done();
+          });
+        });
+      });
     });
 
   });
