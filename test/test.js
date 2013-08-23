@@ -10,6 +10,18 @@ var dbConfig = {
 
 var connString = 'postgres://' + dbConfig.host + ':' + dbConfig.port + '/' + dbConfig.database;
 
+before( function( done ){
+  dirac.init( connString.substring( 0, connString.indexOf('/') ) + '/postgres' );
+  dirac.query( 'drop database if exists dirac_test', function(error){
+    if ( error ) throw error;
+    dirac.query( 'create database dirac_test', function( error ){
+      if ( error ) throw error;
+      dirac.destroy();
+      done();
+    });
+  })
+});
+
 describe ('Root API', function(){
 
   describe ('dirac.init', function(){
@@ -64,7 +76,7 @@ describe ('Root API', function(){
       dirac.unregister( 'users' );
     });
 
-    it ('should throw an error because the schema is missing', function(){
+    it ('should throw an error because the definition is missing', function(){
       assert.throws( function(){
         dirac.register({
           name: 'users'
@@ -97,9 +109,10 @@ describe ('Root API', function(){
 
   describe ('dirac.sync', function(){
 
-    it ('should at least create the dirac_schemas table', function(){
+    it ('should at least create the dirac_schemas table', function( done ){
       dirac.sync( function( error ){
         assert( !error );
+        done();
       });
     });
 
