@@ -10,16 +10,30 @@ var dbConfig = {
 
 var connString = 'postgres://' + dbConfig.host + ':' + dbConfig.port + '/' + dbConfig.database;
 
-before( function( done ){
-  dirac.init( connString.substring( 0, connString.indexOf('/') ) + '/postgres' );
-  dirac.query( 'drop database if exists dirac_test', function(error){
-    if ( error ) throw error;
+var destroyCreateDb = function( callback ){
+  // Reset dirac in case someone has already used it
+  dirac.destroy();
+  dirac.init( connString.substring( 0, connString.lastIndexOf('/') ) + '/postgres' );
+
+  dirac.query( 'drop database if exists dirac_test', function( error ){
+    if ( error ) return callback( error );
     dirac.query( 'create database dirac_test', function( error ){
-      if ( error ) throw error;
+      if ( error ) return callback( error );
+
+      // Reset again for future use
       dirac.destroy();
-      done();
+      dirac.init( connString );
+      callback();
     });
-  })
+  });
+}
+
+before( function( done ){
+  destroyCreateDb( function( error ){
+    if ( error ) throw error;
+
+    done();
+  });
 });
 
 describe ('Root API', function(){
@@ -110,10 +124,13 @@ describe ('Root API', function(){
   describe ('dirac.sync', function(){
 
     it ('should at least create the dirac_schemas table', function( done ){
-      dirac.sync( function( error ){
-        assert( !error );
-        done();
-      });
+      destroyCreateDb( function( error ){
+        assert( !error )
+        dirac.sync( function( error ){
+          assert( !error );
+          done();
+        });
+      })
     });
 
   });
