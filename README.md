@@ -1,4 +1,4 @@
-# Dirac.js - Lighweight Postgres Layer
+# Dirac.js - Lightweight Postgres Layer
 
 Paul Dirac was a theoretical physicist who made fundamental contributions to the early development of both quantum mechanics and quantum electrodynamics. Dirac.js is a flexible and extendable database layer for Node Postgres.
 
