@@ -193,6 +193,86 @@ describe ('Root API', function(){
       });
     });
 
+    it ('should create tables in correct order', function( done ){
+      destroyTables( function( error ){
+        assert( !error )
+
+        dirac.register({
+          name: 'users'
+        , schema: {
+            id: {
+              type: 'serial'
+            , primaryKey: true
+            }
+          , name: { type: 'text' }
+          }
+        });
+
+        dirac.register({
+          name: 'groups'
+        , schema: {
+            id: {
+              type: 'serial'
+            , primaryKey: true
+            }
+          , name: { type: 'text' }
+          , user_id: {
+              type: 'int'
+            , references: { table: 'users', column: 'id' }
+            }
+          }
+        });
+
+        dirac.register({
+          name: 'other_thing'
+        , schema: {
+            id: {
+              type: 'serial'
+            , primaryKey: true
+            }
+          , name: { type: 'text' }
+          , group_id: {
+              type: 'int'
+            , references: { table: 'groups', column: 'id' }
+            }
+          }
+        });
+
+        dirac.register({
+          name: 'other_thing2'
+        , schema: {
+            id: {
+              type: 'serial'
+            , primaryKey: true
+            }
+          , name: { type: 'text' }
+          , user_id: {
+              type: 'int'
+            , references: { table: 'users', column: 'id' }
+            }
+          , group_id: {
+              type: 'int'
+            , references: { table: 'groups', column: 'id' }
+            }
+          }
+        });
+
+        dirac.sync( function( error ){
+          assert( !error );
+
+          async.series( Object.keys( dirac.dals ).map( function( table ){
+            return function( callback ){
+              tableExists( table, function( error, result ){
+                assert( !error );
+                assert( result );
+                callback();
+              });
+            }
+          }), done );
+        });
+      });
+    });
+
     it ('should add a new field', function( done ){
       destroyTables( function( error ){
         assert( !error )
@@ -243,3 +323,11 @@ describe ('Root API', function(){
   });
 
 });
+
+// describe ('DAL API', function(){
+//   describe ('DAL.find', function(){
+//     before(function(done){
+
+//     });
+//   });
+// });
