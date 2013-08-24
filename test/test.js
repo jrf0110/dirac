@@ -29,6 +29,16 @@ var destroyCreateDb = function( callback ){
   });
 };
 
+var destroyTables = function( callback ){
+  dirac.dropAllTables( { forceDirac: true }, function( error ){
+    if ( error ) return callback( error );
+
+    dirac.destroy();
+    dirac.init( connString );
+    callback();
+  });
+};
+
 var tableExists = function( table, callback ){
   var query = 'SELECT * FROM pg_catalog.pg_tables where tablename = $1';
 
@@ -38,7 +48,17 @@ var tableExists = function( table, callback ){
   });
 };
 
+var columnExists = function( table, column, callback ){
+  var query = 'select column_name from information_schema.columns where table_name = $1 and column_name = $2';
+
+  dirac.query( query, [ table, column ], function( error, result ){
+    if ( error ) return callback( error );
+    callback( null, result.rows.length > 0 );
+  });
+};
+
 before( function( done ){
+  this.timeout(3000)
   destroyCreateDb( function( error ){
     if ( error ) throw error;
 
@@ -134,7 +154,7 @@ describe ('Root API', function(){
   describe ('dirac.sync', function(){
 
     it ('should at least create the dirac_schemas table', function( done ){
-      destroyCreateDb( function( error ){
+      destroyTables( function( error ){
         assert( !error )
         dirac.sync( function( error ){
           assert( !error );
@@ -148,10 +168,9 @@ describe ('Root API', function(){
     });
 
     it ('should register a table and sync it', function( done ){
-      destroyCreateDb( function( error ){
+      destroyTables( function( error ){
         assert( !error )
 
-console.log("HAYO")
         dirac.register({
           name: 'users'
         , schema: {
@@ -165,11 +184,57 @@ console.log("HAYO")
 
         dirac.sync( function( error ){
           assert( !error );
-console.log("HAYO")
           tableExists( 'users', function( error, result ){
             assert( !error );
             assert( result );
             done();
+          });
+        });
+      });
+    });
+
+    it ('should add a new field', function( done ){
+      destroyTables( function( error ){
+        assert( !error )
+
+        dirac.register({
+          name: 'users'
+        , schema: {
+            id: {
+              type: 'serial'
+            , primaryKey: true
+            }
+          , name: { type: 'text' }
+          }
+        });
+
+        dirac.sync( function( error ){
+          assert( !error );
+          tableExists( 'users', function( error, result ){
+            assert( !error );
+            assert( result );
+            
+            dirac.register({
+              name: 'users'
+            , schema: {
+                id: {
+                  type: 'serial'
+                , primaryKey: true
+                }
+              , name: { type: 'text' }
+              , email: { type: 'text' }
+              }
+            });
+
+            dirac.sync( function( error ){
+              assert( !error );
+
+              columnExists( 'users', 'email', function( error, result ){
+                assert( !error );
+                assert( result );  
+                done();
+              });
+            });
           });
         });
       });
