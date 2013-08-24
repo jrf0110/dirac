@@ -393,4 +393,45 @@ describe ('DAL API', function(){
       });
     });
   });
+
+  describe ('DAL.update', function(){
+
+    before(function(done){
+      destroyTables( function( error ){
+        if ( error ) return done( error );
+
+        dirac.destroy();
+        dirac.init( connString );
+
+        dirac.register({
+          name: 'users'
+        , schema: {
+            id: {
+              type: 'serial'
+            , primaryKey: true
+            }
+          , name: { type: 'text' }
+          }
+        });
+
+        dirac.sync( function( error ){
+          if ( error ) return done( error );
+
+          dirac.dals.users.insert( { name: 'User' }, done );
+        });
+      });
+    });
+
+    it ('should update', function( done ){
+      var $update = { name: 'Bob' };
+      dirac.dals.users.update( 1, $update, function( error, results ){
+        assert( !error );
+        dirac.dals.users.findOne( 1, function( error, result ){
+          assert( !error );
+          assert( result.name, $update.name );
+          done();
+        });
+      });
+    });
+  });
 });
