@@ -324,10 +324,73 @@ describe ('Root API', function(){
 
 });
 
-// describe ('DAL API', function(){
-//   describe ('DAL.find', function(){
-//     before(function(done){
+describe ('DAL API', function(){
+  describe ('DAL.find', function(){
 
-//     });
-//   });
-// });
+    var fixtureOptions = {
+      users: {
+        numToGenerate: 100
+      }
+    };
+
+    before(function(done){
+      destroyTables( function( error ){
+        if ( error ) return done( error );
+
+        dirac.destroy();
+        dirac.init( connString );
+
+        dirac.register({
+          name: 'users'
+        , schema: {
+            id: {
+              type: 'serial'
+            , primaryKey: true
+            }
+          , name: { type: 'text' }
+          }
+        });
+
+        dirac.sync( function( error ){
+          if ( error ) return done( error );
+
+          var fns = [];
+          for ( var i = 1; i <= fixtureOptions.users.numToGenerate; i++ ){
+            fns.push(function( callback ){
+              dirac.dals.users.insert({
+                name: 'User ' + i
+              }, callback );
+            });
+          }
+
+          async.series( fns, done );
+        });
+      });
+    });
+
+    it ('should return all users', function( done ){
+      dirac.dals.users.find( {}, function( error, results ){
+        assert( !error );
+        assert( results.length == fixtureOptions.users.numToGenerate );
+        done();
+      });
+    });
+
+    it ('add simple where clause', function( done ){
+      var $query = {
+        id: {
+          $gt: parseInt( fixtureOptions.users.numToGenerate / 2 )
+        }
+      }
+      dirac.dals.users.find( $query, function( error, results ){
+        assert( !error );
+        assert(
+          results.filter( function( result ){
+            return result.id > $query.id.$gt
+          }).length == results.length
+        );
+        done();
+      });
+    });
+  });
+});
