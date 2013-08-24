@@ -434,4 +434,44 @@ describe ('DAL API', function(){
       });
     });
   });
+
+  describe ('DAL.remove', function(){
+
+    before(function(done){
+      destroyTables( function( error ){
+        if ( error ) return done( error );
+
+        dirac.destroy();
+        dirac.init( connString );
+
+        dirac.register({
+          name: 'users'
+        , schema: {
+            id: {
+              type: 'serial'
+            , primaryKey: true
+            }
+          , name: { type: 'text' }
+          }
+        });
+
+        dirac.sync( function( error ){
+          if ( error ) return done( error );
+
+          dirac.dals.users.insert( { name: 'User' }, done );
+        });
+      });
+    });
+
+    it ('should remove', function( done ){
+      dirac.dals.users.remove( 1, function( error, results ){
+        assert( !error );
+        dirac.dals.users.findOne( 1, function( error, result ){
+          assert( !error );
+          assert( !result );
+          done();
+        });
+      });
+    });
+  });
 });
