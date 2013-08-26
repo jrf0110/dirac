@@ -58,7 +58,7 @@ dirac.register({
 Connect to your database, sync, and query:
 
 ```javascript
-dirac.connect('postgres://server/database');
+dirac.init('postgres://server/database');
 
 // Creates new tables, performs non-destructive schema changes
 db.sync(); // Optionally pass { force: true } to do a complete wipe
