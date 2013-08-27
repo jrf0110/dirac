@@ -68,7 +68,7 @@ db.sync(); // Optionally pass { force: true } to do a complete wipe
 // You do not need to supply a callback.
 // You can start querying right away since node-pg
 // queues queries until ready
-dirac.users.find({ id: { $gt: 5 } }, function(error, users){
+dirac.dals.users.find({ id: { $gt: 5 } }, function(error, users){
   /* ... */
 })
 ```
