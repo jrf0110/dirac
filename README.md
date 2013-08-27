@@ -6,7 +6,7 @@ Paul Dirac was a theoretical physicist who made fundamental contributions to the
 
 Dirac.js is built on top of [https://github.com/goodybag/mongo-sql](MongoSQL), whose primary goal is to provide SQL query construction, but maintain value consistently throughout. This library extends that goal allowing you to reflect on the overall state of your database and retrieve your table structure in semantic JSON.
 
-Dirac provides you with a decent foundation to start a postgres project with.
+Dirac provides you with a decent foundation to start a postgres project with. It allows you to easily group all of your table logic and schema into one file and keep things generally dry and well-namespaced.
 
 ## Features
 
