@@ -6,6 +6,8 @@ Paul Dirac was a theoretical physicist who made fundamental contributions to the
 
 Dirac.js is built on top of [https://github.com/goodybag/mongo-sql](MongoSQL), whose primary goal is to provide SQL query construction, but maintain value consistently throughout. This library extends that goal allowing you to reflect on the overall state of your database and retrieve your table structure in semantic JSON.
 
+Dirac provides you with a decent foundation to start a postgres project with.
+
 ## Features
 
 * Non-destructive database syncing
@@ -125,7 +127,7 @@ __Arguments:__
 
 All table interfaces are accessed through the ```dirac.dals``` namespace. Each table is defined as an instance of Dirac.Dal.
 
-#### ```dirac.table_name.find( $query, [options], callback )```
+#### ```dirac.dals.table_name.find( $query, [options], callback )```
 
 Select documents in ```table_name```.
 
@@ -135,18 +137,89 @@ __Arguments:__
 * options - Anything else that would go in a MoSQL query ( limit, offset, groupBy, etc )
 * callback - ```function( error, results ){ }```
 
-#### ```dirac.table_name.findOne( $query, [options], callback)```
+#### ```dirac.dals.table_name.findOne( $query, [options], callback)```
 
-Identical to find only it adds a ```limit: 1``` to the options and will return an object rather than an array.
+Identical to find only it adds a ```limit: 1``` to the options and will return an object rather than an array.  Substitute an ID for $query.
 
 __Arguments:__
 
-* $query - MoSQL conditional query ( select where clause )
+* $query - MoSQL conditional query ( select where clause ) or ID
 * options - Anything else that would go in a MoSQL query ( limit, offset, groupBy, etc )
 * callback - ```function( error, result ){ }```
 
-#### ```dirac.table_name.remove( $query, callback )```
+#### ```dirac.dals.table_name.remove( $query, [options], callback )```
 
-#### ```dirac.table_name.update( $query, $update, callback )```
+Removes a document from the database. Substitute an ID for $query.
 
-#### ```dorac.table_name.insert( document, [options], callback )```
+__Arguments:__
+
+* $query - MoSQL conditional query ( select where clause ) or ID
+* options - Anything else that would go in a MoSQL query ( returning, etc )
+* callback - ```function( error, result ){ }```
+
+#### ```dirac.dals.table_name.update( $query, $update, [options] callback )```
+
+Update documents in the database. Substitute an ID for $query.
+
+__Arguments:__
+
+* $query - MoSQL conditional query ( select where clause ) or ID
+* $update - Object whose keys map to column names and values map to values
+* options - Anything else that would go in a MoSQL query ( returning, etc )
+* callback - ```function( error, result ){ }```
+
+#### ```dorac.dals.table_name.insert( document, [options], callback )```
+
+Insert a doument
+
+__Arguments:__
+
+* document - Object whose keys map to column names and values map to values
+* options - Anything else that would go in a MoSQL query ( returning, etc )
+* callback - ```function( error, result ){ }```
+
+## How do I use it in a project?
+
+I create a database module, typically called ```db```.
+
+```javascript
+/**
+ * db.js
+**/
+var dirac = require('dirac');
+var config = require('../config');
+
+dirac.init( config.db );
+
+// Each item in the collection maps to a filename in the ./collections folder
+[
+  'users'
+, 'groups'
+, 'snippets'
+].map( function( t ){
+  return require( './collections/' + t );
+}).forEach( dirac.register );
+
+dirac.sync();
+
+// Expose dals on base db layer so I can do something like:
+//   db.users.findOne( 7, function( error, user){ /* ... */ });
+module.exports = dirac.dals;
+
+/**
+ * snippets.js
+**/
+module.exports = {
+  name: 'snippets'
+, schema: {
+    id:       { type: 'serial', primaryKey: true }
+  , name:     { type: 'text' }
+  , content:  { type: 'text' }
+  }
+, last_updated: {
+    type: 'date'
+  , withoutTimezone: true
+  , default: 'now()'
+  }
+};
+```
