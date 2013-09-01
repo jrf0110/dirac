@@ -60,7 +60,12 @@ dirac.register({
 Connect to your database, sync, and query:
 
 ```javascript
-dirac.init('postgres://server/database');
+dirac.init('postgres://server/my_database');
+// or
+dirac.init({
+  host:     'localhost'  // <- this actually isn't required because host defaults to localhost
+, database: 'my_database'
+});
 
 // Creates new tables, performs non-destructive schema changes
 db.sync(); // Optionally pass { force: true } to do a complete wipe
@@ -71,6 +76,20 @@ db.sync(); // Optionally pass { force: true } to do a complete wipe
 dirac.dals.users.find({ id: { $gt: 5 } }, function(error, users){
   /* ... */
 })
+
+// If the first parameter to findOne isn't an object, we assume we're querying by id
+// Dirac wraps the value in an object like this: { id: 57 }
+dirac.dals.users.findOne( 57, function(error, user){ /* ... */ });
+
+// Update user 57, set name = 'poop' returning "users".*
+dirac.dals.users.update( 57, { name: "poop" }, { returning: ['*'] }, function(error, users){
+  /* ... */
+});
+
+// delete from users where name = "poop" returning *
+dirac.dals.users.remove( { name: "poop" }, { returning: ['*'] }, function(error, users){
+  /* ... */
+});
 ```
 
 ## API
