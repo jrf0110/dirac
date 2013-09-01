@@ -201,6 +201,8 @@ __Arguments:__
 
 I create a database module, typically called ```db```.
 
+__db.js:__
+
 ```javascript
 /**
  * db.js
@@ -224,7 +226,11 @@ dirac.sync();
 // Expose dals on base db layer so I can do something like:
 //   db.users.findOne( 7, function( error, user){ /* ... */ });
 module.exports = dirac.dals;
+```
 
+__snippets.js:__
+
+```javascript
 /**
  * snippets.js
 **/
