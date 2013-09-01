@@ -99,7 +99,7 @@ Dirac has two namespaces:
 * Root
 * Database
 
-The Root namespace is for top-level non-database specific methods while the Databasse namepace is for database specfic methods
+The Root namespace is for top-level non-table specific methods while the Databasse namepace is for table specfic methods
 
 ### Root
 
