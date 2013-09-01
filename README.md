@@ -111,7 +111,7 @@ __Arguments:__
 
 * Connection String or Options
 * Options
-  - Must contain property called ```connStr```
+  - Must contain property called ```connStr``` or ```host```, ```port```, and ```database```
   - Will mix into ```pg.defaults```
 
 ___Options:___
