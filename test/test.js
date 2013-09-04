@@ -293,7 +293,7 @@ describe ('Root API', function(){
           tableExists( 'users', function( error, result ){
             assert( !error );
             assert( result );
-            
+
             dirac.register({
               name: 'users'
             , schema: {
@@ -311,7 +311,7 @@ describe ('Root API', function(){
 
               columnExists( 'users', 'email', function( error, result ){
                 assert( !error );
-                assert( result );  
+                assert( result );
                 done();
               });
             });
@@ -473,5 +473,77 @@ describe ('DAL API', function(){
         });
       });
     });
+  });
+
+  describe ('DAL.before and DAL.after', function(){
+
+    var fixtureOptions = {
+      users: {
+        numToGenerate: 100
+      }
+    };
+
+    before(function(done){
+      destroyTables( function( error ){
+        if ( error ) return done( error );
+
+        dirac.destroy();
+        dirac.init( connString );
+
+        dirac.register({
+          name: 'users'
+        , schema: {
+            id: {
+              type: 'serial'
+            , primaryKey: true
+            }
+          , name: { type: 'text' }
+          }
+        });
+
+        dirac.sync( function( error ){
+          if ( error ) return done( error );
+
+          var fns = [];
+          for ( var i = 1; i <= fixtureOptions.users.numToGenerate; i++ ){
+            fns.push(function( callback ){
+              dirac.dals.users.insert({
+                name: 'User ' + i
+              }, callback );
+            });
+          }
+
+          async.series( fns, done );
+        });
+      });
+    });
+
+    it ('should add a before filter', function(){
+      var gotCalled = false;
+
+      dirac.dals.users.before( 'insert', function( $query, schema, next ){
+        gotCalled = true;
+        next();
+      });
+
+      dirac.dals.users.insert({ name: 'Bob' });
+      assert( gotCalled );
+    });
+
+    it ('should add an after filter', function( done ){
+      var gotCalled = false;
+
+      dirac.dals.users.after( 'find', function( $query, schema, next ){
+        gotCalled = true;
+        next();
+      });
+
+      dirac.dals.users.find({ name: 'Bob' }, function( error, result ){
+        assert( !error );
+        assert( gotCalled );
+        done();
+      });
+    });
+
   });
 });
