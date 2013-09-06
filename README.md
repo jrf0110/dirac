@@ -103,7 +103,7 @@ The Root namespace is for top-level non-table specific methods while the Databas
 
 ### Root
 
-#### ```dirac.init( connStr [options], [options] )```
+#### dirac.init( connStr [options], [options] )
 
 Connect to Postgres
 
@@ -119,7 +119,7 @@ ___Options:___
 * ```connectionString```
 
 
-#### ```dirac.dropAllTables( [callback] )```
+#### dirac.dropAllTables( [callback] )
 
 Drops all tables registered in dirac.
 
@@ -127,7 +127,7 @@ __Arguments:__
 
 * Callback ```(error)```
 
-#### ```dirac.register( name, schema )```
+#### dirac.register( name, schema )
 
 Registers a new table with dirac. Will not actually create the table until ```dirac.sync()``` is called. Alternatively, you could call: ```dirac.dals.table_name.createIfNotExists()``` to manually add it. However, ```sync``` will resolve table dependencies and it will also save the database state so dirac can reason about your current table structure.
 
@@ -136,17 +136,17 @@ __Arguments:__
 * Name - name of the table
 * Schema - as described in [https://github.com/goodybag/mongo-sql](https://github.com/goodybag/mongo-sql) create table statement definitions
 
-#### ```dirac.sync( options )```
+#### dirac.sync( options )
 
-#### ```dirac.createTable( )```
+#### dirac.createTable( )
 
-#### ```dirac.saveCurrentDbState( )```
+#### dirac.saveCurrentDbState( )
 
 ### Database
 
 All table interfaces are accessed through the ```dirac.dals``` namespace. Each table is defined as an instance of Dirac.Dal.
 
-#### ```dirac.dals.table_name.find( $query, [options], callback )```
+#### dirac.dals.table_name.find( $query, [options], callback )
 
 Select documents in ```table_name```. ```$query``` object is the ```where``` property of a MoSQL object. ```options``` is everything else.
 
@@ -187,7 +187,7 @@ dirac.dals.users.find( $query, options, function( error, results ){
 });
 ```
 
-#### ```dirac.dals.table_name.findOne( $query, [options], callback)```
+#### dirac.dals.table_name.findOne( $query, [options], callback)
 
 Identical to find only it adds a ```limit: 1``` to the options and will return an object rather than an array.  Substitute an ID for $query.
 
@@ -197,7 +197,7 @@ __Arguments:__
 * options - Anything else that would go in a MoSQL query ( limit, offset, groupBy, etc )
 * callback - ```function( error, result ){ }```
 
-#### ```dirac.dals.table_name.remove( $query, [options], callback )```
+#### dirac.dals.table_name.remove( $query, [options], callback )
 
 Removes a document from the database. Substitute an ID for $query.
 
@@ -207,7 +207,7 @@ __Arguments:__
 * options - Anything else that would go in a MoSQL query ( returning, etc )
 * callback - ```function( error, result ){ }```
 
-#### ```dirac.dals.table_name.update( $query, $update, [options] callback )```
+#### dirac.dals.table_name.update( $query, $update, [options] callback )
 
 Update documents in the database. Substitute an ID for $query.
 
@@ -218,7 +218,7 @@ __Arguments:__
 * options - Anything else that would go in a MoSQL query ( returning, etc )
 * callback - ```function( error, result ){ }```
 
-#### ```dorac.dals.table_name.insert( document, [options], callback )```
+#### dorac.dals.table_name.insert( document, [options], callback )
 
 Insert a doument
 
@@ -228,7 +228,7 @@ __Arguments:__
 * options - Anything else that would go in a MoSQL query ( returning, etc )
 * callback - ```function( error, result ){ }```
 
-#### ```dorac.dals.table_name.before( [fnName], handler... )```
+#### dorac.dals.table_name.before( [fnName], handler... )
 
 Add a before filter to the dal. Before filters are like middleware layers that get run before the query is executed. You can add as long as a chain as you'd like.  ```...``` denotes you can add as many handlers as you want.
 
@@ -244,7 +244,7 @@ __Arguments:__
 
 __Example:__
 
-```javasccript
+```javascript
 dirac.register({
   name: 'books'
 , schema: {
@@ -272,8 +272,9 @@ dirac.dals.books.before( 'insert', function( $query, schema, next ){
 
   /* ... */
 });
+```
 
-```#### ```dorac.dals.table_name.after( [fnName], handler... )```
+#### dorac.dals.table_name.after( [fnName], handler... )
 
 Add a after filter to the dal. after filters are like middleware layers that get run after the query is executed. You can add as long as a chain as you'd like.  ```...``` denotes you can add as many handlers as you want.
 
@@ -290,7 +291,7 @@ __Arguments:__
 
 __Example:__
 
-```javasccript
+```javascript
 dirac.register({
   name: 'books'
 , schema: {
