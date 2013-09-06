@@ -475,7 +475,7 @@ describe ('DAL API', function(){
     });
   });
 
-  describe ('DAL.before and DAL.after', function(){
+  describe ('DAL filters', function(){
 
     var fixtureOptions = {
       users: {
@@ -533,7 +533,7 @@ describe ('DAL API', function(){
     it ('should add an after filter', function( done ){
       var gotCalled = false;
 
-      dirac.dals.users.after( 'find', function( $query, schema, next ){
+      dirac.dals.users.after( 'find', function( results, $query, schema, next ){
         gotCalled = true;
         next();
       });
