@@ -218,7 +218,7 @@ __Arguments:__
 * options - Anything else that would go in a MoSQL query ( returning, etc )
 * callback - ```function( error, result ){ }```
 
-#### dorac.dals.table_name.insert( document, [options], callback )
+#### dirac.dals.table_name.insert( document, [options], callback )
 
 Insert a doument
 
@@ -228,7 +228,7 @@ __Arguments:__
 * options - Anything else that would go in a MoSQL query ( returning, etc )
 * callback - ```function( error, result ){ }```
 
-#### dorac.dals.table_name.before( [fnName], handler... )
+#### dirac.dals.table_name.before( [fnName], handler... )
 
 Add a before filter to the dal. Before filters are like middleware layers that get run before the query is executed. You can add as long as a chain as you'd like.  ```...``` denotes you can add as many handlers as you want.
 
@@ -274,7 +274,7 @@ dirac.dals.books.before( 'insert', function( $query, schema, next ){
 });
 ```
 
-#### dorac.dals.table_name.after( [fnName], handler... )
+#### dirac.dals.table_name.after( [fnName], handler... )
 
 Add a after filter to the dal. after filters are like middleware layers that get run after the query is executed. You can add as long as a chain as you'd like.  ```...``` denotes you can add as many handlers as you want.
 
