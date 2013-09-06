@@ -148,13 +148,44 @@ All table interfaces are accessed through the ```dirac.dals``` namespace. Each t
 
 #### ```dirac.dals.table_name.find( $query, [options], callback )```
 
-Select documents in ```table_name```.
+Select documents in ```table_name```. ```$query``` object is the ```where``` property of a MoSQL object. ```options``` is everything else.
 
 __Arguments:__
 
 * $query - MoSQL conditional query ( select where clause )
 * options - Anything else that would go in a MoSQL query ( limit, offset, groupBy, etc )
 * callback - ```function( error, results ){ }```
+
+__Example:__
+
+```javascript
+// Query where condition
+var $query = {
+  rating: { $gte: 3.5 }
+, high_score: { $lt: 5000 }
+, name: { $in: [ 'Bob', 'Alice', 'Joe', 'Momma' ] }
+};
+
+// Other options for the query
+var options = {
+  columns: [
+    '*' // users.*
+  , {   // Get average user high_score
+      type:       'average'           // Name of the function
+    , as:         'average_score'     // Name of the column
+    , expression: 'users.high_score'  // Function argument
+    }
+  ]
+, offset: 50
+, limit:  25
+, order: { column: 'id', direction: 'desc' }
+, group: [ 'id', 'name' ]
+};
+
+dirac.dals.users.find( $query, options, function( error, results ){
+  /* ... */
+});
+```
 
 #### ```dirac.dals.table_name.findOne( $query, [options], callback)```
 
@@ -197,9 +228,109 @@ __Arguments:__
 * options - Anything else that would go in a MoSQL query ( returning, etc )
 * callback - ```function( error, result ){ }```
 
-## How do I use it in a project?
+#### ```dorac.dals.table_name.before( [fnName], handler... )```
 
-I create a database module, typically called ```db```.
+Add a before filter to the dal. Before filters are like middleware layers that get run before the query is executed. You can add as long as a chain as you'd like.  ```...``` denotes you can add as many handlers as you want.
+
+__Arguments:__
+
+* fnName [optional] - If provided, will add the filter only to the method on the dal, otherwise will add on all methods.
+* handler - The logic for your before filter. Will be called withe following arguments:
+  + $query - The full MoSQL query object along with the values
+  + schema - The schema for the current table
+  + next - A function to tell dirac to go the next function in the before stack
+           (If you pass an argument to ```next```, dirac assumes that it is an
+            error and will send the value back to the consumers callbaack)
+
+__Example:__
+
+```javasccript
+dirac.register({
+  name: 'books'
+, schema: {
+    id: { type: 'serial', primaryKey: true }
+  , name: {
+      type: 'text'
+
+      // Dirac doesn't know anything about this object
+      // So we can use it for our own benefit
+    , validation: {
+        type: 'string'
+      , max_length: 250
+      }
+    }
+  }
+})
+
+// Crappy validation
+dirac.dals.books.before( 'insert', function( $query, schema, next ){
+  if ( typeof $query.values.name != schema.name.validation.type )
+    return next({ type: 'VALIDATION_ERROR', message: 'invalid type for `name`' });
+
+  if ( $query.values.name.length > schema.validation.max_length )
+    return next({ type: 'VALIDATION_ERROR', message: 'invalid length for `name`' });
+
+  /* ... */
+});
+
+```#### ```dorac.dals.table_name.after( [fnName], handler... )```
+
+Add a after filter to the dal. after filters are like middleware layers that get run after the query is executed. You can add as long as a chain as you'd like.  ```...``` denotes you can add as many handlers as you want.
+
+__Arguments:__
+
+* fnName [optional] - If provided, will add the filter only to the method on the dal, otherwise will add on all methods.
+* handler - The logic for your after filter. Will be called withe following arguments:
+  + results - The results from the query
+  + $query - The full MoSQL query object along with the values
+  + schema - The schema for the current table
+  + next - A function to tell dirac to go the next function in the after stack
+           (If you pass an argument to ```next```, dirac assumes that it is an
+            error and will send the value back to the consumers callbaack)
+
+__Example:__
+
+```javasccript
+dirac.register({
+  name: 'books'
+, schema: {
+    id: { type: 'serial', primaryKey: true }
+  , num_words: {
+      type: 'text'
+
+      // node-pg returns bigints as strings
+      // Tell casting after filter to cast to a number
+    , cast: 'number'
+    }
+  }
+})
+
+// Crappy casting
+dirac.dals.books.after( 'find', function( results, $query, schema, next ){
+  var casts = {};
+  for ( var key in schema ){
+    if ( 'cast' in schema ) casts[ key ] = schema[ key ][ cast ];
+  }
+
+  // Transform result set
+  for ( var i = 0, l = results.length; i < l; ++i ){
+    for ( var key in casts ){
+      switch ( casts[ key ] ){
+        case 'int':     results[ i ][ key ] = parseInt( results[ i ][ key ] ); break;
+        case 'number':  results[ i ][ key ] = parseFloat( results[ i ][ key ] ); break;
+        case 'string':  results[ i ][ key ] = "" + results[ i ][ key ]; break;
+        default: break;
+      }
+    }
+  }
+});
+```
+
+## Examples
+
+### General Organization
+
+I usually create node module called ```db```.
 
 __db.js:__
 
@@ -213,6 +344,7 @@ var config = require('../config');
 dirac.init( config.db );
 
 // Each item in the collection maps to a filename in the ./collections folder
+// So require each dirac table definition and register it
 [
   'users'
 , 'groups'
@@ -221,6 +353,8 @@ dirac.init( config.db );
   return require( './collections/' + t );
 }).forEach( dirac.register );
 
+// Get our database schemas up to date
+// This will add any tables and columns
 dirac.sync();
 
 // Expose dals on base db layer so I can do something like:
@@ -247,4 +381,72 @@ module.exports = {
   , default: 'now()'
   }
 };
+```
+
+### Querying
+
+One of the nicest parts about dirac is its robust querying DSL. Since it's built on top of MoSQL, we get to take advantage of a fairly complete SQL API.
+
+__Find a single user by id:__
+
+```javascript
+dirac.dals.users.findOne( 7, function( error, user ){ /* ... */ });
+```
+
+__Find a user, join on groups and aggregate into array:__
+
+```javascript
+var options = {
+  columns: [
+    // Defaults to "users".*
+    '*'
+
+    // Columns can have sub-queries and expressions like this array_agg function
+  , { type: 'array_agg', expression: 'groups.name', as: 'groups' }
+  ]
+
+  // Specify all joins here
+, joins: {
+    groups: {
+      type: 'left'
+    , on: { 'user_id': '$users.id$' }
+    }
+  }
+}
+
+// select "users".*, array_agg( groups.name ) as "groups" from "users"
+//   left join "groups" on "groups"."user_id" = "users"."id"
+//
+// Now the user object will have an array of group names
+dirac.dals.users.findOne( 7, function( error, user ){ /* ... */ });
+```
+
+__Sub-Queries:__
+
+You can put sub-queries in lots of places with dirac/MoSQL
+
+```javascript
+var options = {
+  // Construct a view called "consumers"
+  with: {
+    consumers: {
+      type: 'select'
+    , table: 'users'
+    , where: { type: 'consumer' }
+    }
+  }
+}
+
+var $query = {
+  name: { $ilike: 'Alice' }
+, id: {
+    $in: {
+      type:     'select'
+    , table:    'consumers'
+    , columns:  ['id']
+    }
+  }
+};
+
+dirac.dals.users.find( $query, options, function( error, consumers ){ /* ... */ });
 ```
