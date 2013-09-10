@@ -320,6 +320,40 @@ describe ('Root API', function(){
       });
     });
 
+    it ('should forcibly sync', function( done ){
+      destroyTables( function( error ){
+        assert( !error )
+
+        dirac.register({
+          name: 'users'
+        , schema: {
+            id: {
+              type: 'serial'
+            , primaryKey: true
+            }
+          , name: { type: 'text' }
+          }
+        });
+
+        dirac.sync( { force: true }, function( error ){
+          assert( !error );
+          dirac.dals.users.insert({ name: 'Bob' }, function( error, result ){
+            assert( !error );
+            assert( result );
+
+            dirac.sync( { force: true }, function( error ){
+              assert( !error );
+              dirac.dals.users.findOne( {}, function( error, result ){
+                assert( !error );
+                assert( !result );
+                done();
+              });
+            });
+          });
+        })
+      });
+    });
+
   });
 
 });
