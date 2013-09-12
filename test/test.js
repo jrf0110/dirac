@@ -354,6 +354,63 @@ describe ('Root API', function(){
       });
     });
 
+    it ('should register a view', function( done ){
+      destroyTables( function( error ){
+        assert( !error )
+
+        var view;
+
+        dirac.register({
+          name: 'users'
+        , schema: {
+            id: {
+              type: 'serial'
+            , primaryKey: true
+            }
+          , name: { type: 'text' }
+          }
+        });
+
+        dirac.register( view = {
+          name: 'bobs'
+        , type: 'view'
+        , query: {
+            type: 'select'
+          , table: 'users'
+          , where: { name: { $ilike: 'bob' } }
+          }
+        });
+
+        assert( dirac.views[ view.name ] );
+        assert( dirac.dals[ view.name ] );
+
+        dirac.sync( function( error ){
+          assert( !error );
+
+          async.series(
+            ['Bob', 'Alice'].map( function( name ){
+              return function( _done ){
+                dirac.dals.users.insert({ name: name }, _done);
+              }
+            })
+          , function( error ){
+              assert( !error );
+
+              dirac.dals.find( {}, function( error, results ){
+                assert( !error );
+
+                assert( results.filter( function( u ){
+                  return u.name.toLowerCase() == view.query.where.name.$ilike;
+                }).length, results.length );
+
+                done();
+              });
+            }
+          );
+        });
+      });
+    });
+
   });
 
 });
