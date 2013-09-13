@@ -385,7 +385,6 @@ describe ('Root API', function(){
         assert( dirac.dals[ view.name ] );
 
         dirac.sync( function( error ){
-          console.log(error);
           assert( !error );
 
           async.series(
