@@ -129,12 +129,39 @@ __Arguments:__
 
 #### dirac.register( name, schema )
 
-Registers a new table with dirac. Will not actually create the table until ```dirac.sync()``` is called. Alternatively, you could call: ```dirac.dals.table_name.createIfNotExists()``` to manually add it. However, ```sync``` will resolve table dependencies and it will also save the database state so dirac can reason about your current table structure.
+Registers a new table or view with dirac. Will not actually create the table until ```dirac.sync()``` is called. Alternatively, you could call: ```dirac.dals.table_name.createIfNotExists()``` to manually add it. However, ```sync``` will resolve table dependencies and it will also save the database state so dirac can reason about your current table structure.
 
 __Arguments:__
 
 * Name - name of the table
 * Schema - as described in [https://github.com/goodybag/mongo-sql](https://github.com/goodybag/mongo-sql) create table statement definitions
+
+__Example:__
+
+```javascript
+// Register table
+dirac.register({
+  name: 'users'
+, schema: {
+    id: {
+      type: 'serial'
+    , primaryKey: true
+    }
+  , name: { type: 'text' }
+  }
+});
+
+// Register View
+dirac.register({
+  name: 'bobs'
+, type: 'view'
+, query: {
+    type: 'select'
+  , table: 'users'
+  , where: { name: { $ilike: 'bob' } }
+  }
+});
+```
 
 #### dirac.sync( options )
 
