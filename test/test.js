@@ -16,9 +16,9 @@ var destroyCreateDb = function( callback ){
   dirac.destroy();
   dirac.init( connString.substring( 0, connString.lastIndexOf('/') ) + '/postgres' );
 
-  dirac.query( 'drop database if exists dirac_test', function( error ){
+  dirac.raw( 'drop database if exists dirac_test', function( error ){
     if ( error ) return callback( error );
-    dirac.query( 'create database dirac_test', function( error ){
+    dirac.raw( 'create database dirac_test', function( error ){
       if ( error ) return callback( error );
 
       // Reset again for future use
@@ -42,7 +42,7 @@ var destroyTables = function( callback ){
 var tableExists = function( table, callback ){
   var query = 'SELECT * FROM pg_catalog.pg_tables where tablename = $1';
 
-  dirac.query( query, [ table ], function( error, result ){
+  dirac.raw( query, [ table ], function( error, result ){
     if ( error ) return callback( error );
     callback( null, result.rows.length > 0 );
   });
@@ -51,7 +51,7 @@ var tableExists = function( table, callback ){
 var columnExists = function( table, column, callback ){
   var query = 'select column_name from information_schema.columns where table_name = $1 and column_name = $2';
 
-  dirac.query( query, [ table, column ], function( error, result ){
+  dirac.raw( query, [ table, column ], function( error, result ){
     if ( error ) return callback( error );
     callback( null, result.rows.length > 0 );
   });
@@ -385,6 +385,7 @@ describe ('Root API', function(){
         assert( dirac.dals[ view.name ] );
 
         dirac.sync( function( error ){
+          console.log(error);
           assert( !error );
 
           async.series(
@@ -396,7 +397,7 @@ describe ('Root API', function(){
           , function( error ){
               assert( !error );
 
-              dirac.dals.find( {}, function( error, results ){
+              dirac.dals.bobs.find( {}, function( error, results ){
                 assert( !error );
 
                 assert( results.filter( function( u ){
