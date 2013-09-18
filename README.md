@@ -165,9 +165,23 @@ dirac.register({
 
 #### dirac.sync( options )
 
+Perform non-destructive syncs:
+
+* Add new tables
+* Add new columns
+* Add column constraints
+ 
+Options:
+
+* force - If true, will perform a destructive sync, thus clearing any orphan columns
+
 #### dirac.createTable( )
 
+Excplicitly create a DALs table. You don't really need to use this unless you're adding new DALs, even then, _you should just call ```sync```_
+
 #### dirac.saveCurrentDbState( )
+
+Save an entry in the dirac_schemas table of the current DAL state in memory. This happens everytime you call ```sync```
 
 ### Database
 
