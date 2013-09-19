@@ -271,7 +271,7 @@ __Arguments:__
 
 #### dirac.dals.table_name.before( [fnName], handler... )
 
-Add a before filter to the dal. Before filters are like middleware layers that get run before the query is executed. You can add as long as a chain as you'd like.  ```...``` denotes you can add as many handlers as you want.
+Add a _before_ filter to the DAL. Before filters are like middleware layers that get run before the query is executed. You can add as long as a chain as you'd like.  ```...``` denotes you can add as many handlers as you want.
 
 __Arguments:__
 
@@ -317,7 +317,7 @@ dirac.dals.books.before( 'insert', function( $query, schema, next ){
 
 #### dirac.dals.table_name.after( [fnName], handler... )
 
-Add a after filter to the dal. after filters are like middleware layers that get run after the query is executed. You can add as long as a chain as you'd like.  ```...``` denotes you can add as many handlers as you want.
+Add an _after_ filter to the DAL. After filters are like middleware layers that get run after the query is executed. You can add as long as a chain as you'd like.  ```...``` denotes you can add as many handlers as you want.
 
 __Arguments:__
 
