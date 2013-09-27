@@ -11,8 +11,11 @@ Dirac provides you with a decent foundation to start a postgres project with. It
 ## Features
 
 * Non-destructive database syncing
+* Destructive database syncing
 * Standard crud
 * Robust JSON queries
+* Before/After Middleware
+* Easy-to-use database function organization
 
 ## Examples
 
