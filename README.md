@@ -11,8 +11,11 @@ Dirac provides you with a decent foundation to start a postgres project with. It
 ## Features
 
 * Non-destructive database syncing
+* Destructive database syncing
 * Standard crud
 * Robust JSON queries
+* Before/After Middleware
+* Easy-to-use database function organization
 
 ## Examples
 
@@ -165,9 +168,23 @@ dirac.register({
 
 #### dirac.sync( options )
 
+Perform non-destructive syncs:
+
+* Add new tables
+* Add new columns
+* Add column constraints
+ 
+Options:
+
+* force - If true, will perform a destructive sync, thus clearing any orphan columns
+
 #### dirac.createTable( )
 
+Excplicitly create a DALs table. You don't really need to use this unless you're adding new DALs, even then, _you should just call ```sync```_
+
 #### dirac.saveCurrentDbState( )
+
+Save an entry in the dirac_schemas table of the current DAL state in memory. This happens everytime you call ```sync```
 
 ### Database
 
@@ -257,7 +274,7 @@ __Arguments:__
 
 #### dirac.dals.table_name.before( [fnName], handler... )
 
-Add a before filter to the dal. Before filters are like middleware layers that get run before the query is executed. You can add as long as a chain as you'd like.  ```...``` denotes you can add as many handlers as you want.
+Add a _before_ filter to the DAL. Before filters are like middleware layers that get run before the query is executed. You can add as long as a chain as you'd like.  ```...``` denotes you can add as many handlers as you want.
 
 __Arguments:__
 
@@ -303,7 +320,7 @@ dirac.dals.books.before( 'insert', function( $query, schema, next ){
 
 #### dirac.dals.table_name.after( [fnName], handler... )
 
-Add a after filter to the dal. after filters are like middleware layers that get run after the query is executed. You can add as long as a chain as you'd like.  ```...``` denotes you can add as many handlers as you want.
+Add an _after_ filter to the DAL. After filters are like middleware layers that get run after the query is executed. You can add as long as a chain as you'd like.  ```...``` denotes you can add as many handlers as you want.
 
 __Arguments:__
 
