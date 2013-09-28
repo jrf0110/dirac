@@ -24,7 +24,7 @@
   "gitHead": "f49aed817b0db67e83e2e359ed43d3c2a434992b",
   "readmeFilename": "README.md",
   "dependencies": {
-    "mongo-sql": "~2.1.12",
+    "mongo-sql": "~2.x.x",
     "async": "~0.2.9",
     "pg": "~2.3.1",
     "lodash": "~1.3.1"
