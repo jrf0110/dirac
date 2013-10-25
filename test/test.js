@@ -320,6 +320,55 @@ describe ('Root API', function(){
       });
     });
 
+    it ('should add a default', function( done ){
+      destroyTables( function( error ){
+        assert( !error )
+
+        dirac.register({
+          name: 'users'
+        , schema: {
+            id: {
+              type: 'serial'
+            , primaryKey: true
+            }
+          , other: { type: 'text' }
+          , name: { type: 'text' }
+          }
+        });
+
+        dirac.sync( function( error ){
+          assert( !error );
+          tableExists( 'users', function( error, result ){
+            assert( !error );
+            assert( result );
+
+            dirac.register({
+              name: 'users'
+            , schema: {
+                id: {
+                  type: 'serial'
+                , primaryKey: true
+                }
+              , other: { type: 'text' }
+              , name: { type: 'text', default: "'poop'" }
+              }
+            });
+
+            dirac.sync( function( error ){
+              assert( !error );
+
+              dirac.dals.users.insert( { other: 'bob' }, { returning: ['*'] }, function( error, result ){
+                console.log(error, result)
+                assert( !error );
+                assert( result[0].name == 'poop' );
+                done();
+              });
+            });
+          });
+        });
+      });
+    });
+
     it ('should forcibly sync', function( done ){
       destroyTables( function( error ){
         assert( !error )
