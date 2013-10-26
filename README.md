@@ -485,8 +485,6 @@ __db.js:__
 var dirac = require('dirac');
 var config = require('../config');
 
-dirac.init( config.db );
-
 // Each item in the collection maps to a filename in the ./collections folder
 // So require each dirac table definition and register it
 [
@@ -496,6 +494,8 @@ dirac.init( config.db );
 ].map( function( t ){
   return require( './collections/' + t );
 }).forEach( dirac.register );
+
+dirac.init( config.db );
 
 // Get our database schemas up to date
 // This will add any tables and columns
