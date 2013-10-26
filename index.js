@@ -1,4 +1,4 @@
 var dirac = module.exports = require('./lib/dirac');
 var diracSchema = require('./lib/dirac-table');
 
-dirac.register( diracSchema );
+dirac.tableRef = require('dirac-table-ref');
