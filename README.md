@@ -178,6 +178,105 @@ Options:
 
 * force - If true, will perform a destructive sync, thus clearing any orphan columns
 
+#### dirac.use( middleware )
+
+Pass a function to dirac to be called whenever ```dirac.init``` is called. Useful for initializing before/after filters and adding database-wide properties to all schemas.
+
+__Arguments:__
+
+* middleware( dirac ) - the function that will be called when dirac is initialized. It's passed a single parameter (the dirac module).
+
+__Example:__
+
+```javascript
+/**
+ * db/middleware/created-at.js
+ */
+
+var utils = require('utils');
+
+// Middleware automatically adds created_at/updated_at fields to schemas
+module.exports = function( options ){
+  return function( dirac ){
+    utils.defaults( options, {
+      createdAt: {
+        name: 'created_at'
+      , type: 'timestamp'
+      , default: 'now()'
+      }
+    , updatedAt: {
+        name: 'updated_at'
+      , type: 'timestamp'
+      , default: 'now()'
+      }
+    });
+
+    // Adds fields to a DAL
+    var addFields = function( dal ){
+      var schema = dirac.dals[ dal ].schema;
+
+      // Add createdAt if it's not already there
+      if ( !(options.createdAt.name in schema) ){
+        schema[ options.createdAt.name ] = options.createdAt;
+      }
+
+      // Add updatedAt if it's not already there
+      if ( !(options.updatedAt.name in schema) ){
+        schema[ options.updatedAt.name ] = options.updatedAt;
+      }
+    };
+
+    // Before filter adds updatedAt = 'now()' to the update query
+    var updateFilter = function( $query, schema, next ){
+      // Updates may be on values or updates
+      var values = 'values' in $query ? $query.values : $query.updates;
+
+      values[ options.updatedAt.name ] = 'now()';
+
+      next();
+    };
+
+    // Registers before filters to update updatedAt
+    var addFilters = function( dal ){
+      dirac.dals[ dal ].before( 'update', updateFilter );
+    };
+
+    // Add fields to each DAL
+    Object.keys( dirac.dals ).forEach( addFields )
+
+    // Add filters to each DAL
+    Object.keys( dirac.dals ).forEach( addFilters )
+  };
+};
+```
+
+```javascript
+/**
+ * db/index.js
+ */
+
+var middleware = {
+  createdAt: require('./middleware/created-at')
+};
+
+dirac.use(
+  middleware.createdAt({
+    updatedAt: {
+      name: 'last_updated'
+    , type: 'timestamp'
+    , default: 'now()'
+    }
+  })
+);
+
+// DAL registration
+// ...
+// ...
+
+// After init is called, all functions specified in use are called
+dirac.init( config.db );
+```
+
 #### dirac.createTable( )
 
 Excplicitly create a DALs table. You don't really need to use this unless you're adding new DALs, even then, _you should just call ```sync```_
