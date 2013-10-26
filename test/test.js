@@ -102,6 +102,20 @@ describe ('Root API', function(){
 
   });
 
+  describe ('dirac.use', function(){
+    it ('should call a function when dirac inits', function(){
+      var didCall = false;
+      var middleware = function( dirac ){
+        didCall = true;
+        // Just make sure we've been passed the dirac object
+        assert( 'init' in dirac );
+      };
+      dirac.use( middleware );
+      dirac.init( dbConfig );
+      assert( didCall );
+    });
+  });
+
   describe ('dirac.register', function(){
 
     it ('should register a new table', function(){
@@ -358,7 +372,6 @@ describe ('Root API', function(){
               assert( !error );
 
               dirac.dals.users.insert( { other: 'bob' }, { returning: ['*'] }, function( error, result ){
-                console.log(error, result)
                 assert( !error );
                 assert( result[0].name == 'poop' );
                 done();
