@@ -190,7 +190,7 @@ __Example:__
 
 ```javascript
 /**
- * db/middleware/createdAt.js
+ * db/middleware/created-at.js
  */
 
 var utils = require('utils');
@@ -248,6 +248,33 @@ module.exports = function( options ){
     Object.keys( dirac.dals ).forEach( addFilters )
   };
 };
+```
+
+```javascript
+/**
+ * db/index.js
+ */
+
+var middleware = {
+  createdAt: require('./middleware/created-at')
+};
+
+dirac.use(
+  middleware.createdAt({
+    updatedAt: {
+      name: 'last_updated'
+    , type: 'timestamp'
+    , default: 'now()'
+    }
+  })
+);
+
+// DAL registration
+// ...
+// ...
+
+// After init is called, all functions specified in use are called
+dirac.init( config.db );
 ```
 
 #### dirac.createTable( )
