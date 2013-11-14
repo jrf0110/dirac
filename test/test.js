@@ -103,6 +103,10 @@ describe ('Root API', function(){
   });
 
   describe ('dirac.use', function(){
+    beforeEach( function(){
+      dirac.destroy();
+    });
+
     it ('should call a function when dirac inits', function(){
       var didCall = false;
       var middleware = function( dirac ){
@@ -112,6 +116,18 @@ describe ('Root API', function(){
       };
       dirac.use( middleware );
       dirac.init( dbConfig );
+      assert( didCall );
+    });
+
+    it ('should call a function immediately after dirac inits', function(){
+      var didCall = false;
+      var middleware = function( dirac ){
+        didCall = true;
+        // Just make sure we've been passed the dirac object
+        assert( 'init' in dirac );
+      };
+      dirac.init( dbConfig );
+      dirac.use( middleware );
       assert( didCall );
     });
   });
