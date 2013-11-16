@@ -465,6 +465,81 @@ describe ('Root API', function(){
       });
     });
 
+    it ('should add a unique constraint and then remove it', function( done ){
+      destroyTables( function( error ){
+        assert( !error )
+
+        dirac.register({
+          name: 'users'
+        , schema: {
+            id: {
+              type: 'serial'
+            , primaryKey: true
+            }
+          , other: { type: 'text' }
+          , name: { type: 'text' }
+          }
+        });
+
+        dirac.sync( function( error ){
+          assert( !error );
+          hasConstraint( 'users', 'name', 'UNIQUE', function( error, result ){
+            assert( !error );
+            assert( !result );
+
+            dirac.register({
+              name: 'users'
+            , schema: {
+                id: {
+                  type: 'serial'
+                , primaryKey: true
+                }
+              , other: { type: 'text' }
+              , name: { type: 'text', unique: true }
+              }
+            });
+
+            dirac.sync( function( error ){
+              assert( !error );
+
+              hasConstraint( 'users', 'name', 'UNIQUE', function( error, result ){
+                assert( !error );
+                assert( result );
+
+                // Regression test for ensuring we can sync without it trying
+                // to add the unique twice
+                dirac.sync( function( error ){
+                  assert(!error);
+                  
+                  dirac.register({
+                    name: 'users'
+                  , schema: {
+                      id: {
+                        type: 'serial'
+                      , primaryKey: true
+                      }
+                    , other: { type: 'text' }
+                    , name: { type: 'text' }
+                    }
+                  });
+
+                  dirac.sync( function( error ){
+                    assert( !error );
+
+                    hasConstraint( 'users', 'name', 'UNIQUE', function( error, result ){
+                      assert( !error );
+                      assert( !result );
+                      done();
+                    });
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
+    });
+
     it ('should add a primary key, then move it to another column', function( done ){
       destroyTables( function( error ){
         assert( !error )
