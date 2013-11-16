@@ -57,6 +57,25 @@ var columnExists = function( table, column, callback ){
   });
 };
 
+var hasConstraint = function( table, column, constraint, callback ){
+  var query = [
+  , 'select 1 from'
+  , '  information_schema.constraint_column_usage usage'
+  , 'left join information_schema.table_constraints constraints'
+  , '  on constraints.constraint_name = usage.constraint_name'
+  , 'where constraints.constraint_type = $1'
+  , 'and usage.table_name = $2'
+  , 'and usage.column_name = $3'
+  ].join('\n');
+
+  var values = [ constraint, table, column ];
+
+  dirac.raw( query, values, function( error, result ){
+    if ( error ) return callback( error );
+    return callback( null, result.rows.length > 0 );
+  });
+};
+
 before( function( done ){
   this.timeout(3000)
   destroyCreateDb( function( error ){
@@ -391,6 +410,119 @@ describe ('Root API', function(){
                 assert( !error );
                 assert( result[0].name == 'poop' );
                 done();
+              });
+            });
+          });
+        });
+      });
+    });
+
+    it ('should add a unique constraint', function( done ){
+      destroyTables( function( error ){
+        assert( !error )
+
+        dirac.register({
+          name: 'users'
+        , schema: {
+            id: {
+              type: 'serial'
+            , primaryKey: true
+            }
+          , other: { type: 'text' }
+          , name: { type: 'text' }
+          }
+        });
+
+        dirac.sync( function( error ){
+          assert( !error );
+          tableExists( 'users', function( error, result ){
+            assert( !error );
+            assert( result );
+
+            dirac.register({
+              name: 'users'
+            , schema: {
+                id: {
+                  type: 'serial'
+                , primaryKey: true
+                }
+              , other: { type: 'text' }
+              , name: { type: 'text', unique: true }
+              }
+            });
+
+            dirac.sync( function( error ){
+              assert( !error );
+
+              hasConstraint( 'users', 'name', 'UNIQUE', function( error, result ){
+                assert( !error );
+                assert( result );
+                done();
+              });
+            });
+          });
+        });
+      });
+    });
+
+    it ('should add a primary key, then move it to another column', function( done ){
+      destroyTables( function( error ){
+        assert( !error )
+
+        dirac.register({
+          name: 'users'
+        , schema: {
+            id: {
+              type: 'serial'
+            , primaryKey: true
+            }
+          , other: { type: 'text' }
+          , name: { type: 'text' }
+          }
+        });
+
+        dirac.sync( function( error ){
+          assert( !error );
+          tableExists( 'users', function( error, result ){
+            assert( !error );
+            assert( result );
+
+            dirac.register({
+              name: 'users'
+            , schema: {
+                id: {
+                  type: 'serial'
+                }
+              , other: { type: 'text', primaryKey: true }
+              , name: { type: 'text' }
+              }
+            });
+
+            dirac.sync( function( error ){
+              assert( !error );
+
+              hasConstraint( 'users', 'other', 'PRIMARY KEY', function( error, result ){
+                assert( !error );
+                assert( result );
+                
+                dirac.register({
+                  name: 'users'
+                , schema: {
+                    id: { type: 'serial' }
+                  , other: { type: 'text' }
+                  , name: { type: 'text', primaryKey: true }
+                  }
+                });
+
+                dirac.sync( function( error ){
+                  assert( !error );
+
+                  hasConstraint( 'users', 'name', 'PRIMARY KEY', function( error, result ){
+                    assert( !error );
+                    assert( result );
+                    done();
+                  });
+                });
               });
             });
           });
