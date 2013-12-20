@@ -1,5 +1,20 @@
 /**
  * DB Middleware: Cast to JSON
+ * Automatically stringifies fields
+ *
+ * By default, the options are:
+ *
+ *  {
+ *    operations: ['insert', 'update']
+ *  , types: ['json']
+ *  }
+ *
+ *  var dirac = require('dirac');
+ *
+ *  dirac.use( dirac.castToJSON({
+ *    operations: ['insert', 'update', 'myCustomUpdateFunction']
+ *  , types: ['json', 'my-special-json-type']
+ *  }));
  */
 
 var castToJSON = function( field ){
