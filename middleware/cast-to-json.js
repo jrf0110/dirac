@@ -28,9 +28,7 @@ var castToJSON = function( field ){
     if ( $query.updates ) applyField( $query.updates );
 
     if ( Array.isArray( $query.values ) ){
-      $query.values.forEach( function( v ){
-        applyField( v );
-      });
+      $query.values.forEach( applyField );
     } else if ( $query.values ){
       applyField( $query.values );
     }

@@ -89,7 +89,11 @@ describe ('Root API', function(){
 
   describe ('dirac.init', function(){
 
-    it ('should initialize with a connStr', function(){
+    beforeEach( function(){
+      dirac.destroy();
+    });
+
+    it ('should initialize with a connection string', function(){
       dirac.init( connString );
       assert( dirac.options.connString == connString );
       assert( dirac.dals.dirac_schemas instanceof dirac.DAL );
@@ -107,7 +111,7 @@ describe ('Root API', function(){
       assert( dirac.dals.dirac_schemas instanceof dirac.DAL );
     });
 
-    it ('should throw an error because missing connString', function(){
+    it ('should throw an error because missing connection string', function(){
       assert.throws( function(){
         dirac.init();
       }, Error)
