@@ -82,7 +82,7 @@ describe ('Middleware', function(){
       dirac.use( dirac.embeds() );
     });
 
-    it ('should embed groups', function(){
+    it ('should embed groups', function( done ){
       dirac.register({
         name: 'users'
       , schema: {
@@ -97,7 +97,7 @@ describe ('Middleware', function(){
       , embeds: {
           groups: function( results, $query, callback ){
             if ( results.length === 0 ) return callback();
-            dirac.dals.groups.find({ user_id: results[0].id }, callback );
+            dirac.dals.groups.find({ uid: results[0].id }, callback );
           }
         }
       });
@@ -118,8 +118,8 @@ describe ('Middleware', function(){
           function( cb ){
             dirac.dals.users.insert( { email: 'blah' }, cb );
           }
-        , function( user, cb ){
-            dirac.dals.groups.insert({ name: 'test', uid: user.id }, cb );
+        , function( results, cb ){
+            dirac.dals.groups.insert({ name: 'test', uid: results[0].id }, cb );
           }
         ], function( error ){
           assert( !error );
