@@ -700,6 +700,32 @@ describe ('Root API', function(){
       });
     });
 
+    it ('should wait to query while syncing', function( done ){
+      destroyTables( function( error ){
+        assert( !error )
+
+        var view;
+
+        dirac.register({
+          name: 'users'
+        , schema: {
+            id: {
+              type: 'serial'
+            , primaryKey: true
+            }
+          , name: { type: 'text' }
+          }
+        });
+
+        dirac.sync();
+
+        dirac.dals.users.insert({ name: 'Bob' }, function( error ){
+          assert( !error );
+          done();
+        });
+      });
+    });
+
   });
 
 });
