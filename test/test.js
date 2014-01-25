@@ -421,6 +421,58 @@ describe ('Root API', function(){
       });
     });
 
+    it ('should add a default but not try to add it again', function( done ){
+      destroyTables( function( error ){
+        assert( !error )
+
+        dirac.register({
+          name: 'users'
+        , schema: {
+            id: {
+              type: 'serial'
+            , primaryKey: true
+            }
+          , other: { type: 'text' }
+          , name: { type: 'text' }
+          }
+        });
+
+        dirac.sync( function( error ){
+          assert( !error );
+          tableExists( 'users', function( error, result ){
+            assert( !error );
+            assert( result );
+
+            dirac.register({
+              name: 'users'
+            , schema: {
+                id: {
+                  type: 'serial'
+                , primaryKey: true
+                }
+              , other: { type: 'text' }
+              , name: { type: 'text', default: "'poop'" }
+              }
+            });
+
+            dirac.sync( function( error ){
+              assert( !error );
+
+              dirac.dals.users.insert( { other: 'bob' }, { returning: ['*'] }, function( error, result ){
+                assert( !error );
+                assert( result[0].name == 'poop' );
+
+                dirac.sync( function( error ){
+                  assert( !error );
+                  done();
+                });
+              });
+            });
+          });
+        });
+      });
+    });
+
     it ('should add a unique constraint', function( done ){
       destroyTables( function( error ){
         assert( !error )
