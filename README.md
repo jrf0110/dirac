@@ -472,11 +472,21 @@ dirac.dals.books.after( 'find', function( results, $query, schema, next ){
 
 ## Examples
 
-### General Organization
+### Getting Started
 
-I usually create node module called ```db```.
+Directory layout:
 
-__db.js:__
+```
+- my-app/
+  - db/
+    - tables/
+      - table_1.js
+      - table_2.js
+      - table_3.js
+    - index.js
+```
+
+__index.js:__
 
 ```javascript
 /**
@@ -485,15 +495,8 @@ __db.js:__
 var dirac = require('dirac');
 var config = require('../config');
 
-// Each item in the collection maps to a filename in the ./collections folder
-// So require each dirac table definition and register it
-[
-  'users'
-, 'groups'
-, 'snippets'
-].map( function( t ){
-  return require( './collections/' + t );
-}).forEach( dirac.register );
+// Tell dirac to use all of the schemas in `/tables`
+dirac.use( dirac.dir( __dirname + '/tables' ) );
 
 dirac.init( config.db );
 
@@ -503,17 +506,19 @@ dirac.sync();
 
 // Expose dals on base db layer so I can do something like:
 //   db.users.findOne( 7, function( error, user){ /* ... */ });
-module.exports = dirac.dals;
+for ( var k in dirac.dals ) module.exports[ k ] = dirac.dals[ k ];
 ```
 
-__snippets.js:__
+__table_1.js:__
 
 ```javascript
 /**
- * snippets.js
+ * table_1.js
+ * Export a JavaScript object containing the
+ * table.name, table.schema
 **/
 module.exports = {
-  name: 'snippets'
+  name: 'table_1'
 , schema: {
     id:       { type: 'serial', primaryKey: true }
   , name:     { type: 'text' }
