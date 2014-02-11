@@ -70,6 +70,9 @@ dirac.init({
 , database: 'my_database'
 });
 
+// Tell dirac to use all of the schemas in `/tables`
+dirac.use( dirac.dir( __dirname + '/tables' ) );
+
 // Creates new tables, performs non-destructive schema changes
 db.sync(); // Optionally pass { force: true } to do a complete wipe
 
@@ -78,7 +81,7 @@ db.sync(); // Optionally pass { force: true } to do a complete wipe
 // queues queries until ready
 dirac.dals.users.find({ id: { $gt: 5 } }, function(error, users){
   /* ... */
-})
+});
 
 // If the first parameter to findOne isn't an object, we assume we're querying by id
 // Dirac wraps the value in an object like this: { id: 57 }
