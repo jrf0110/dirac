@@ -135,4 +135,16 @@ describe ('Middleware', function(){
       });
     });
   });
+
+  describe('Directory', function(){
+    beforeEach( function(){
+      dirac.destroy();
+    });
+
+    it ('should use a directory for dal registration', function(){
+      dirac.use( dirac.dir( __dirname + '/test-dals' ) );
+      dirac.init({ connString: 'postgres://localhost/dirac_test' });
+      assert( dirac.dals.test_tbl instanceof dirac.DAL );
+    });
+  });
 });
