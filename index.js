@@ -6,3 +6,4 @@ dirac.tableRef    = require('./middleware/table-ref');
 dirac.castToJSON  = require('./middleware/cast-to-json');
 dirac.embeds      = require('./middleware/embeds');
 dirac.dir         = require('./middleware/dir');
+dirac.many        = require('./middleware/relationships');

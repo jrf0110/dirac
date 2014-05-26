@@ -147,4 +147,44 @@ describe ('Middleware', function(){
       assert( dirac.dals.test_tbl instanceof dirac.DAL );
     });
   });
+
+  describe( 'Relationships', function(){
+    beforeEach( function(){
+      dirac.destroy();
+    });
+
+    it( 'Should describe a one-to-many relationship', function( done ){
+      dirac.register({
+        name: 'users'
+      , schema: {
+          id:    { type: 'serial', primaryKey: true }
+        , email: { type: 'text' }
+        }
+      });
+
+      dirac.register({
+        name: 'groups'
+      , schema: {
+          id:    { type: 'serial', primaryKey: true }
+        , uid:   { type: 'integer', references: { table: 'users', column: 'id' } }
+        , name:  { type: 'text' }
+        }
+      });
+
+      dirac.init({ connString: 'postgres://localhost/dirac_test' });
+
+      dirac.users.find( {}, { many: [{ table: 'groups' }] }, function( error))
+
+      {
+        many: [
+          { table: 'groups'
+          , where: {
+              'users.id': '$groups.user_id$'
+            }
+          , joins: 
+          }
+        ]
+      }
+    });
+  });
 });
