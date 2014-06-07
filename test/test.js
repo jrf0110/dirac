@@ -1,5 +1,5 @@
 var assert = require('assert');
-var pg = require('pg');
+var pg = require('pg.js');
 var async = require('async');
 var dirac = require('../');
 
