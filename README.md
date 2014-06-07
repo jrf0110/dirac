@@ -648,3 +648,5 @@ dirac.dals.orders.findOne( user.id, options, function( error, user ){
   // typeof order.user === 'object' => true
 });
 ```
+
+This is all done with a single query to the database without any result coercion.
