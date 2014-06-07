@@ -606,3 +606,47 @@ var $query = {
 
 dirac.dals.users.find( $query, options, function( error, consumers ){ /* ... */ });
 ```
+
+## Built-in Middleware
+
+Dirac has the following built-in middleware modules:
+
+* Cast To JSON
+* Dir
+* Embeds
+* [Relationships](#middleware-relationships)
+* Table Ref
+
+### Middleware Relationships
+
+The relationships middleware allows you to easily embed foreign data in your result set. Dirac uses the schemas defined with `dirac.register` to build a dependency graph of your schemas with pivots on foreign key relationships. It uses this graph to build the proper sub-queries to embed one-to-one or one-to-many type structures.
+
+__Usage:__
+
+```javascript
+var dirac = require('dirac');
+
+// Make sure to call relationships before registering tables
+dirac.use( dirac.relationships() );
+dirac.use( dirac.dir( __dirname + '/tables' ) );
+
+dirac.init( config );
+
+// Embed Order Items as an array on the order
+// Embed user and restaurant as json objects
+var options = {
+  many: [{ table: 'order_items', alias: 'items' }]
+, one:  [
+    { table: 'restaurants', alias: 'restaurant' }
+  , { table: 'users', alias: 'user' }
+  ]
+};
+
+dirac.dals.orders.findOne( user.id, options, function( error, user ){
+  // Array.isArray( order.items ) => true
+  // typeof order.restaurant === 'object' => true
+  // typeof order.user === 'object' => true
+});
+```
+
+This is all done with a single query to the database without any result coercion.

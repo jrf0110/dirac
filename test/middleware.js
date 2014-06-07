@@ -147,4 +147,68 @@ describe ('Middleware', function(){
       assert( dirac.dals.test_tbl instanceof dirac.DAL );
     });
   });
+
+  describe( 'Relationships', function(){
+    beforeEach( function(){
+      dirac.destroy();
+    });
+
+    it( 'Should describe a one-to-many relationship', function( done ){
+      dirac.use( dirac.relationships() );
+
+      dirac.register({
+        name: 'users'
+      , schema: {
+          id:    { type: 'serial', primaryKey: true }
+        , email: { type: 'text' }
+        }
+      });
+
+      dirac.register({
+        name: 'groups'
+      , schema: {
+          id:    { type: 'serial', primaryKey: true }
+        , uid:   { type: 'integer', references: { table: 'users', column: 'id' } }
+        , name:  { type: 'text' }
+        }
+      });
+
+      dirac.init({ connString: 'postgres://localhost/dirac_test' });
+
+      dirac.dals.users.insert({ email: 'poop@poop.com' }, function( error, user ){
+        assert( !error, error );
+
+        user = user[0];
+
+        assert( user.id );
+
+        var groups = [
+          { uid: user.id, name: 'client '}
+        , { uid: user.id, name: 'test-123 '}
+        ];
+
+        dirac.dals.groups.insert( groups, function( error ){
+          assert( !error, error );
+
+          dirac.dals.users.findOne( user.id, { many: [{ table: 'groups' }] }, function( error, user ){
+            assert( !error, error );
+
+            assert( Array.isArray( user.groups ), 'user.groups is ' + typeof user.groups );
+
+            groups = groups.map( function( g ){
+              return g.name;
+            });
+
+            user.groups.map( function( g ){
+              return g.name;
+            }).forEach( function( g ){
+              assert( groups.indexOf( g ) > -1, g + ' not in original groups' );
+            });
+
+            done();
+          });
+        });
+      });
+    });
+  });
 });
