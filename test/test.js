@@ -96,6 +96,7 @@ describe ('Root API', function(){
     it ('should initialize with a connection string', function(){
       dirac.init( connString );
       assert( dirac.options.connString == connString );
+      console.log(dirac.DAL.prototype.initialize.toString());
       assert( dirac.dals.dirac_schemas instanceof dirac.DAL );
     });
 
