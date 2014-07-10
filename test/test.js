@@ -782,7 +782,8 @@ describe ('Root API', function(){
   });
 
   describe ('dirac.tx', function() {
-    it ('should lol', function( done ){
+
+    it ('should perform transaction', function( done ){
       // Creating a transaction will
       // 1. fetch a db client
       // 2. begin
@@ -795,7 +796,17 @@ describe ('Root API', function(){
         done();
       });
     });
+
+    it ('should throw error attempting to execute twice', function( done ){
+      var tx = dirac.tx.create();
+      tx.exec( function(err, results) {
+        assert(!err);
+        assert.throws(tx.exec.bind(this));
+        done();
+      });
+    });
   });
+
 });
 
 describe ('DAL API', function(){
