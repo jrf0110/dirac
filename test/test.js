@@ -783,25 +783,66 @@ describe ('Root API', function(){
 
   describe ('dirac.tx', function() {
 
+    before(function(done){
+      destroyTables( function( error ){
+        if ( error ) return done( error );
+
+        dirac.destroy();
+        dirac.init( connString );
+
+        dirac.register({
+          name: 'users'
+        , schema: {
+            id: {
+              type: 'serial'
+            , primaryKey: true
+            }
+          , name: { type: 'text' }
+          }
+        });
+
+        dirac.sync( done );
+      });
+    });
+
     it ('should perform transaction', function( done ){
-      // Creating a transaction will
-      // 1. fetch a db client
-      // 2. begin
-      // 3. run all tx queries
-      // 4. commit
       var tx = dirac.tx.create();
-      tx.users.insert({ name: 'dennis the menace' });
-      tx.exec( function(err, results) {
-        assert(!err);
-        done();
+
+      tx.begin(function(err) {
+        assert( !err );
+        tx.users.insert({ name: 'red fish' }, function(err) {
+          assert( !err );
+          tx.users.insert({ name: 'blue fish' }, function(err) {
+            assert( !err );
+            tx.commit( done );
+          });
+        });
+      });
+    });
+
+    it ( 'should perform transaction async', function( done ){
+      var tx = dirac.tx.create();
+
+      async.series([
+        tx.begin.bind(tx)
+      , tx.users.insert.bind(tx.users, { name: 'red fish' })
+      , tx.users.insert.bind(tx.users, { name: 'blue fish' })
+      ], function(err, results) {
+        assert( !err );
+        tx.commit(done);
       });
     });
 
     it ('should throw error attempting to execute twice', function( done ){
       var tx = dirac.tx.create();
-      tx.exec( function(err, results) {
-        assert(!err);
-        assert.throws(tx.exec.bind(this));
+
+      async.series([
+        tx.begin.bind(tx)
+      , tx.users.insert.bind(tx.users, { name: 'red fish' })
+      , tx.commit.bind(tx)
+      ], function(err, results) {
+        assert( !err );
+        assert.throws(tx.users.insert.bind(this, { name: 'blue fish' }));
         done();
       });
     });
