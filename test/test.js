@@ -817,8 +817,8 @@ describe ('Root API', function(){
             tx.commit( function( error ){
               assert(!error);
 
-              dirac.dals.users.find({ name: { $or: [ 'red fish', 'blue fish' ] } }, function( error, users ){
-                assert(!error);
+              dirac.dals.users.find({ name: { $or: [ 'red fish', 'blue fish' ] } }, function( err, users ){
+                assert( !err );
                 assert.equal( users.length, 2 );
                 done();
               });
@@ -833,11 +833,20 @@ describe ('Root API', function(){
 
       async.series([
         tx.begin.bind(tx)
-      , tx.users.insert.bind(tx.users, { name: 'red fish' })
-      , tx.users.insert.bind(tx.users, { name: 'blue fish' })
+      , tx.users.insert.bind(tx.users, { name: 'woody' })
+      , tx.users.insert.bind(tx.users, { name: 'buzz' })
       ], function(err, results) {
         assert( !err );
-        tx.commit(done);
+
+        tx.commit(function( err ){
+          assert( !err );
+
+          dirac.dals.users.find({ name: { $or: [ 'woody', 'buzz' ] } }, function( err, users ){
+            assert( !err );
+            assert.equal( users.length, 2 );
+            done();
+          })
+        });
       });
     });
 
