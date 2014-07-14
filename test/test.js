@@ -820,7 +820,7 @@ describe ('Root API', function(){
       });
     });
 
-    it ( 'should perform transaction async', function( done ){
+    it ('should perform transaction async', function( done ){
       var tx = dirac.tx.create();
 
       async.series([
@@ -833,7 +833,7 @@ describe ('Root API', function(){
       });
     });
 
-    it ('should throw error attempting to execute twice', function( done ){
+    it ('should throw error attempting to query after commit', function( done ){
       var tx = dirac.tx.create();
 
       async.series([
@@ -849,7 +849,7 @@ describe ('Root API', function(){
   });
 
 });
-
+/*
 describe ('DAL API', function(){
   describe ('DAL.find', function(){
 
@@ -1073,3 +1073,4 @@ describe ('DAL API', function(){
 
   });
 });
+*/
