@@ -814,7 +814,15 @@ describe ('Root API', function(){
           assert( !err );
           tx.users.insert({ name: 'blue fish' }, function(err) {
             assert( !err );
-            tx.commit( done );
+            tx.commit( function( error ){
+              assert(!error);
+
+              dirac.dals.users.find({ name: { $or: [ 'red fish', 'blue fish' ] } }, function( error, users ){
+                assert(!error);
+                assert.equal( users.length, 2 );
+                done();
+              });
+            });
           });
         });
       });
