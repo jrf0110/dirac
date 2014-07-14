@@ -781,8 +781,92 @@ describe ('Root API', function(){
 
   });
 
-});
+  describe ('dirac.tx', function() {
 
+    before(function(done){
+      destroyTables( function( error ){
+        if ( error ) return done( error );
+
+        dirac.destroy();
+        dirac.init( connString );
+
+        dirac.register({
+          name: 'users'
+        , schema: {
+            id: {
+              type: 'serial'
+            , primaryKey: true
+            }
+          , name: { type: 'text' }
+          }
+        });
+
+        dirac.sync( done );
+      });
+    });
+
+    it ('should perform transaction', function( done ){
+      var tx = dirac.tx.create();
+
+      tx.begin(function(err) {
+        assert( !err );
+        tx.users.insert({ name: 'red fish' }, function(err) {
+          assert( !err );
+          tx.users.insert({ name: 'blue fish' }, function(err) {
+            assert( !err );
+            tx.commit( function( error ){
+              assert(!error);
+
+              dirac.dals.users.find({ name: { $or: [ 'red fish', 'blue fish' ] } }, function( err, users ){
+                assert( !err );
+                assert.equal( users.length, 2 );
+                done();
+              });
+            });
+          });
+        });
+      });
+    });
+
+    it ('should perform transaction async', function( done ){
+      var tx = dirac.tx.create();
+
+      async.series([
+        tx.begin.bind(tx)
+      , tx.users.insert.bind(tx.users, { name: 'woody' })
+      , tx.users.insert.bind(tx.users, { name: 'buzz' })
+      ], function(err, results) {
+        assert( !err );
+
+        tx.commit(function( err ){
+          assert( !err );
+
+          dirac.dals.users.find({ name: { $or: [ 'woody', 'buzz' ] } }, function( err, users ){
+            assert( !err );
+            assert.equal( users.length, 2 );
+            done();
+          })
+        });
+      });
+    });
+
+    it ('should throw error attempting to query after commit', function( done ){
+      var tx = dirac.tx.create();
+
+      async.series([
+        tx.begin.bind(tx)
+      , tx.users.insert.bind(tx.users, { name: 'red fish' })
+      , tx.commit.bind(tx)
+      ], function(err, results) {
+        assert( !err );
+        assert.throws(tx.users.insert.bind(this, { name: 'blue fish' }));
+        done();
+      });
+    });
+  });
+
+});
+/*
 describe ('DAL API', function(){
   describe ('DAL.find', function(){
 
@@ -1006,3 +1090,4 @@ describe ('DAL API', function(){
 
   });
 });
+*/

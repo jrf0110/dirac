@@ -477,6 +477,74 @@ dirac.dals.books.after( 'find', function( results, $query, schema, next ){
 });
 ```
 
+### Transactions
+
+Transactions can be made by created a transaction object via `dirac.tx.create()`. Normally, every query by default uses a pool client and releases it per request. You do not want to release a client back into the pool in the middle of a transaction, because that would be _very, very bad_.
+
+For transactions, dirac allows you to access the same client to execute multiple queries until you commit or rollback.
+
+__Example:__
+
+```
+var tx = dirac.tx.create();
+
+tx.begin(function(err) {
+  if ( err ) return tx.rollback();
+  tx.users.update(userId, balance: { $inc: 5 } }, function(err) {
+    if ( err ) return tx.rollback();
+    tx.users.insert(userId, balance: { $dec: 5 }, function(err) {
+      if ( err ) return tx.rollback();
+      tx.commit();
+    });
+  });
+});
+```
+
+This can be rather unwieldy so you could use a control library or abstract this further:
+
+```
+var async = require('async')
+var tx = dirac.tx.create();
+
+async.series([
+  tx.begin.bind(tx)
+, tx.users.update.bind(tx.users, userId, { balance: { $inc: 5 } })
+, tx.users.update.bind(tx.users, userId, { balance: { $dec: 5 } })
+], function(err) {
+  if ( err ) return tx.rollback(); // rollback if any queries fail
+  tx.commit();
+});
+```
+
+#### dirac.tx.create()
+
+Creates a new `tx` object which accesses the same pg.Client for transactional queries.
+
+#### tx.begin( callback )
+
+Invokes a `begin` statement
+
+#### tx.commit( callback )
+
+Invokes the `commit` statement and releases the `tx` client. Subsequent queries will throw an error.
+
+#### tx.rollback( callback )
+
+If you run into an error you can `rollback` and release the client. Subsequent queries will throw an error.
+
+#### tx data access
+
+All dirac.dals are available under the `tx` object.
+
+__Example__
+
+```
+var tx = dirac.tx.create();
+
+tx.users.insert({ name: 'Ben Jammin' }, callback);
+tx.restaurants.update(5, { name: 'Uncle Billys' }, callback);
+```
+
 ## Examples
 
 ### Getting Started
