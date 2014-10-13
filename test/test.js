@@ -567,7 +567,7 @@ describe ('Root API', function(){
                 // to add the unique twice
                 dirac.sync( function( error ){
                   assert(!error);
-                  
+
                   dirac.register({
                     name: 'users'
                   , schema: {
@@ -636,7 +636,7 @@ describe ('Root API', function(){
               hasConstraint( 'users', 'other', 'PRIMARY KEY', function( error, result ){
                 assert( !error );
                 assert( result );
-                
+
                 dirac.register({
                   name: 'users'
                 , schema: {
@@ -781,6 +781,41 @@ describe ('Root API', function(){
 
   });
 
+  describe ('dirac.remove', function() {
+    before(function(done){
+      destroyTables( function( error ){
+        if ( error ) return done( error );
+
+        dirac.destroy();
+        dirac.init( connString );
+
+        dirac.register({
+          name: 'happy_meals'
+        , schema: {
+            toy_id: {
+              type: 'int'
+            }
+          , meal_id: {
+              type: 'int'
+            }
+          }
+        });
+
+        dirac.sync( done );
+      });
+    });
+
+    it ('should remove', function( done ){
+      dirac.dals.happy_meals.insert({ toy_id: 3, meal_id: 5}, function(err) {
+        assert(!err);
+        dirac.dals.happy_meals.remove({ toy_id: 3 }, function(err, results) {
+          assert(!err);
+          assert(results.length === 1);
+          done();
+        });
+      });
+    });
+  });
   describe ('dirac.tx', function() {
 
     before(function(done){
