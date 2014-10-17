@@ -1,7 +1,6 @@
 var dirac = module.exports = require('./lib/dirac');
 var utils = require('./lib/utils');
 var diracSchema = require('./lib/dirac-table');
-var pg = require('pg.js');
 
 // Middleware
 dirac.tableRef      = require('./middleware/table-ref');
@@ -11,8 +10,13 @@ dirac.dir           = require('./middleware/dir');
 dirac.relationships = require('./middleware/relationships');
 
 dirac.mosql = utils.mosql;
-dirac.pg    = pg;
+dirac.pg    = utils.pg;
 
 dirac.setMoSql = function( instance ){
   utils.mosql = instance;
 };
+
+dirac.setPg = function( instance ){
+  utils.pg = instance;
+};
+
