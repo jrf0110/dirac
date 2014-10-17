@@ -545,6 +545,53 @@ tx.users.insert({ name: 'Ben Jammin' }, callback);
 tx.restaurants.update(5, { name: 'Uncle Billys' }, callback);
 ```
 
+### Configure Data Access
+
+Dirac exposes mongo-sql and pg instances through `dirac.db`.
+This way your database layer can reuse the same connection pool
+and data access configurations.
+
+#### dirac.db.mosql
+
+The mongo-sql instance
+
+#### dirac.db.setMosql( mosql )
+
+Replaces the mosql object
+
+__Arguments__
+* mosql - mongo-sql object
+
+#### dirac.db.pg
+
+The node-pg instance
+
+#### dirac.db.setPg( pg )
+
+Replaces the node-pg object
+
+__Arguments__
+
+* pg - node-pg object
+
+#### Example of setting dirac.db.pg
+
+```js
+// Customizing pg so we parse timestamps into moment objects
+var pg = require('pg');
+var dirac = require('dirac');
+
+var timestampOid = 1114;
+var parseTimestamp = function(str) {
+  return moment(str);
+}
+
+pg.types.setTypeParser(timestampOid, parseTimestamp);
+
+// Now abstractions such as dirac can reuse the same pg.
+dirac.db.setPg( pg );
+```
+
 ## Examples
 
 ### Getting Started
