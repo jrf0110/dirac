@@ -96,7 +96,6 @@ describe ('Root API', function(){
     it ('should initialize with a connection string', function(){
       dirac.init( connString );
       assert( dirac.options.connString == connString );
-      console.log(dirac.DAL.prototype.initialize.toString());
       assert( dirac.dals.dirac_schemas instanceof dirac.DAL );
     });
 
@@ -897,6 +896,41 @@ describe ('Root API', function(){
         assert.throws(tx.users.insert.bind(this, { name: 'blue fish' }));
         done();
       });
+    });
+
+    it ('should lock table in a transaction', function( done ){
+      var tx = dirac.tx.create();
+      async.series([
+        dirac.dals.users.insert.bind(dirac.dals.users, { name: 'red fish' })
+      , tx.begin.bind(tx)
+      , tx.users.lock.bind(tx.users, 'ACCESS EXCLUSIVE')
+      , tx.users.update.bind(tx.users, { name: 'red fish'}, { name: 'blue fish'})
+      , tx.commit.bind(tx)
+      ], function(err){
+        assert(!err);
+        done();
+      });
+    });
+
+    it ('should lock table without specifying mode (ACCESS EXCLUSIVE)', function( done ){
+      var tx = dirac.tx.create();
+      async.series([
+        dirac.dals.users.insert.bind(dirac.dals.users, { name: 'red fish' })
+      , tx.begin.bind(tx)
+      , tx.users.lock.bind(tx.users)
+      , tx.users.update.bind(tx.users, { name: 'red fish'}, { name: 'blue fish'})
+      , tx.commit.bind(tx)
+      ], function(err){
+        assert(!err);
+        done();
+      });
+    });
+
+    it ('should fail trying to lock table outside of transaction blocks', function( done ){
+      dirac.dals.users.lock(function(err) {
+        assert(err);
+        done();
+      })
     });
   });
 
