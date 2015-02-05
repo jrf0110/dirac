@@ -485,7 +485,7 @@ For transactions, dirac allows you to access the same client to execute multiple
 
 __Example:__
 
-```
+```js
 var tx = dirac.tx.create();
 
 tx.begin(function(err) {
@@ -502,7 +502,7 @@ tx.begin(function(err) {
 
 This can be rather unwieldy so you could use a control library or abstract this further:
 
-```
+```js
 var async = require('async')
 var tx = dirac.tx.create();
 
@@ -514,6 +514,26 @@ async.series([
   if ( err ) return tx.rollback(); // rollback if any queries fail
   tx.commit();
 });
+```
+
+If you need to apply [explicit table locks](http://www.postgresql.org/docs/9.4/static/explicit-locking.html)
+to a transaction, you can use `.lock(mode)` per table:
+
+```js
+async.series([
+  tx.begin.bind(tx)
+, tx.users.lock.bind(tx, 'ACCESS EXCLUSIVE')
+, tx.users.update.bind(tx.users, userId, { name: 'Billy' })
+, tx.commit.bind(tx)]);
+```
+
+To query the following
+
+```sql
+BEGIN;
+LOCK TABLE users IN ACCESS EXCLUSIVE MODE;
+UPDATE "users" set "users"."name" = 'Billy';
+COMMIT;
 ```
 
 #### dirac.tx.create()
