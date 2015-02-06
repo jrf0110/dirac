@@ -31,7 +31,6 @@ module.exports = function( options ){
             return dal.schema[ col_name ].references;
           }).forEach( function( col_name ){
             var col = dal.schema[ col_name ];
-            console.log('referenc', col.references.table, 'to', table_name);
             var target = dirac.dals[ col.references.table ];
 
             if ( !target.dependents[ table_name ] ){
