@@ -189,13 +189,26 @@ describe ('Middleware', function(){
           });
         }
 
+        // Insert some other users to ensure we're not screwing this up
       , function( user, next ){
+          dirac.dals.users.insert( { email: 'poop2@poop.com' }, function( error, user2 ){
+            assert( !error, error );
+
+            user2 = user2[0];
+
+            assert( user2.id );
+
+            next( null, user, user2 );
+          });
+        }
+
+      , function( user, user2, next ){
           var groups = [
             { uid: user.id, name: 'client '}
           , { uid: user.id, name: 'test-123 '}
           ];
 
-          dirac.dals.groups.insert( groups, function( error ){
+          dirac.dals.groups.insert( groups.concat({ uid: user2.id, name: 'client' }), function( error ){
             return next( error, user, groups );
           });
         }

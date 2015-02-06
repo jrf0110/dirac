@@ -1,4 +1,5 @@
-var utils = require('lodash');
+var utils       = require('lodash');
+var mosqlUtils  = require('mongo-sql/lib/utils');
 
 module.exports = function( options ){
   var relationships = function( dirac ){
@@ -11,6 +12,37 @@ module.exports = function( options ){
         this.dependencies = {};
         return init.apply( this, arguments );
       }
+    });
+
+    dirac.use( function( dirac ){
+      // Filter down to dals whose schema contains a `references` key
+      Object.keys( dirac.dals ).filter( function( table_name ){
+        var dal = dirac.dals[ table_name ];
+
+        return Object.keys( dal.schema ).some( function( col_name ){
+          return dal.schema[ col_name ].references;
+        });
+      }).forEach( function( table_name ){
+        var dal = dirac.dals[ table_name ];
+
+        Object.keys( dal.schema ).filter( function( col_name ){
+          return dal.schema[ col_name ].references;
+        }).forEach( function( col_name ){
+          var col = dal.schema[ col_name ];
+          var target = dirac.dals[ col.references.table ];
+
+          if ( !target.dependents[ table_name ] ){
+            target.dependents[ table_name ] = {};
+          }
+
+          if ( !dal.dependencies[ col.references.table ] ){
+            dal.dependencies[ col.references.table ] = {};
+          }
+
+          target.dependents[ table_name ][ col.references.column ] = col_name;
+          dal.dependencies[ col.references.table ][ col_name ] = col.references.column;
+        });
+      });
     });
 
     // Cache incoming/outgoing dependencies
