@@ -138,14 +138,13 @@ module.exports = function( options ){
         };
 
         var applyMixin = function( table_name, $query ){
-          console.log('applyMixin', table_name);
           var cid = 1;
           var tmpl = function( data ){
             var where = utils.extend( {}, data.where );
             var on = utils.extend( {}, data.on );
 
             data.pivots.forEach( function( p ){
-              where[ p.target_col ] = on[ p.target_col ] = '$' + mosqlUtils.quoteObject( p.source_col, data.source ) + '$';
+              /*where[ p.target_col ] = */on[ p.target_col ] = '$' + mosqlUtils.quoteObject( p.source_col, data.source ) + '$';
             });
 
             var main = utils.extend({
@@ -178,8 +177,8 @@ module.exports = function( options ){
 
             return {
               type:   'left'
-            , alias:  data.alias + '_' + cid++
-            , target: main
+            , alias:  data.qalias
+            , target: data.target
             , on:     on
             };
           };
@@ -217,6 +216,12 @@ module.exports = function( options ){
             if ( !$query.joins ){
               $query.joins = [];
             }
+
+            if ( !$query.columns ){
+              $query.columns = ['*'];
+            }
+
+            $query.columns.push({ table: context.alias, name: '*' })
 
             $query.joins.push( tmpl( context ) );
           });

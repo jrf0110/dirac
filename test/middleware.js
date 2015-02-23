@@ -357,7 +357,7 @@ describe ('Middleware', function(){
       ], done );
     });
 
-    it.only( 'Should describe a mixin relationship', function( done ){
+    it( 'Should describe a mixin relationship', function( done ){
       dirac.use( dirac.relationships() );
 
       dirac.register({
