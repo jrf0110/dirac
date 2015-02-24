@@ -1,6 +1,6 @@
 {
   "name": "dirac",
-  "version": "0.4.10",
+  "version": "0.4.11",
   "description": "Node-PG database layer built with MoSQL",
   "main": "index.js",
   "directories": {
