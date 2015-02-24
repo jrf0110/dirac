@@ -763,7 +763,7 @@ __Relationships Directives__
 * [Pluck](#relationships-pluck)
 * [Mixin](#relationships-mixin)
 
-__Usage:__
+__Full Blown Example:__
 
 ```javascript
 var dirac = require('dirac');
@@ -777,17 +777,29 @@ dirac.init( config );
 // Embed Order Items as an array on the order
 // Embed user and restaurant as json objects
 var options = {
-  many: [{ table: 'order_items', alias: 'items' }]
-, one:  [
-    { table: 'restaurants', alias: 'restaurant' }
-  , { table: 'users', alias: 'user' }
-  ]
+  many: [ { table: 'order_items'
+          , alias: 'items'
+            // Automatically do the left join to get item options
+          , mixin: [{ table: 'order_item_options' }]
+          }
+        ]
+, one:  [ { table: 'restaurants'
+          , alias: 'restaurant'
+          }
+        , { table: 'users'
+          , alias: 'user'
+            // Automatically pull out just an array of group names
+            // that apply to the user object
+          , pluck: [ { table: 'groups', column: 'name' } ]
+          }
+        ]
 };
 
 dirac.dals.orders.findOne( user.id, options, function( error, user ){
   // Array.isArray( order.items ) => true
   // typeof order.restaurant === 'object' => true
   // typeof order.user === 'object' => true
+  // Array.isArray( order.user.groups ) => true
 });
 ```
 
