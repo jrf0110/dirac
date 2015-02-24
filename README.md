@@ -756,6 +756,13 @@ Dirac has the following built-in middleware modules:
 
 The relationships middleware allows you to easily embed foreign data in your result set. Dirac uses the schemas defined with `dirac.register` to build a dependency graph of your schemas with pivots on foreign key relationships. It uses this graph to build the proper sub-queries to embed one-to-one or one-to-many type structures.
 
+__Relationships Directives__
+
+* [One](#relationships-one)
+* [Many](#relationships-many)
+* [Pluck](#relationships-pluck)
+* [Mixin](#relationships-mixin)
+
 __Usage:__
 
 ```javascript
@@ -785,3 +792,65 @@ dirac.dals.orders.findOne( user.id, options, function( error, user ){
 ```
 
 This is all done with a single query to the database without any result coercion.
+
+#### Relationships: One
+
+Applies a one-to-one relationship on the query:
+
+```javascript
+// orders (id, user_id, ...)
+// users (id, ...)
+dirac.dals.orders.find( {}, {
+  one: [{ table: 'users', alias: 'user' }]
+})
+
+// [{ id: 1, user: { ... } }, { id: 2, user: { ... } }]
+```
+
+#### Relationships: Many
+
+Applies a one-to-many relationship on the query:
+
+```javascript
+// users (id, ...)
+// orders (id, user_id, ...)
+dirac.dals.users.findOne( 32, {
+  many: [{ table: 'orders', alias: 'orders' }]
+})
+
+// { id: 32, orders: [{ id: 1, user_id: 32, ... }, { id: 2, user_id: 32, ... }] }
+```
+
+#### Relationships: Pluck
+
+Like [Many](#relationships-many), but maps on a single field:
+
+```javascript
+// users (id, ...)
+// groups (id, user_id, name, ...)
+dirac.dals.users.findOne( 32, {
+  pluck: [{ table: 'groups', column: 'name' }]
+})
+
+// { id: 32, groups: ['client', 'cool-guys'] }
+```
+
+#### Relationships: Mixin
+
+Like [One](#relationships-one), but mixes in the properties from the target into the source (basically a more abstract join).
+
+```javascript
+// Useful for junction tables
+// user_invoices (id, user_id, ...)
+// user_invoice_orders (id, user_invoice_id, order_id, ...)
+// orders (id, ...)
+db.user_invoices.findOne( 1, {
+ many: [ { table: 'user_invoice_orders'
+         , alias: 'orders'
+         , mixin: [ { table: 'orders' } ]
+         }
+       ]
+})
+
+// { id: 1, orders: [{ id: 1, user_invoice_id: 1, user_id: 1 }, ... ] }
+```

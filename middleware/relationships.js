@@ -80,6 +80,11 @@ module.exports = function( options ){
               applyPluck( main.table, main );
             }
 
+            if ( Array.isArray( main.mixin ) ){
+              main.mixin.forEach( function( t ){ t.qAlias = t.qAlias || (data.qAlias + 'r'); });
+              applyMixin( main.table, main );
+            }
+
             return {
               type: 'expression'
             , alias: data.alias
@@ -132,6 +137,96 @@ module.exports = function( options ){
           });
         };
 
+        var applyMixin = function( table_name, $query ){
+          var cid = 1;
+          var tmpl = function( data ){
+            var where = utils.extend( {}, data.where );
+            var on = utils.extend( {}, data.on );
+
+            data.pivots.forEach( function( p ){
+              /*where[ p.target_col ] = */on[ p.target_col ] = '$' + mosqlUtils.quoteObject( p.source_col, data.source ) + '$';
+            });
+
+            var main = utils.extend({
+              type:     'select'
+            , table:    data.target
+            , alias:    data.qAlias
+            , where:    where
+            , limit:    1
+            }, utils.omit( data, ['table', 'alias', 'pivots', 'target', 'source', 'where', 'on'] ));
+
+            if ( Array.isArray( main.one ) ){
+              main.one.forEach( function( t ){ t.qAlias = t.qAlias || (data.qAlias + 'r'); });
+              applyOne( main.table, main );
+            }
+
+            if ( Array.isArray( main.many ) ){
+              main.many.forEach( function( t ){ t.qAlias = t.qAlias || (data.qAlias + 'r'); });
+              applyMany( main.table, main );
+            }
+
+            if ( Array.isArray( main.pluck ) ){
+              main.pluck.forEach( function( t ){ t.qAlias = t.qAlias || (data.qAlias + 'r'); });
+              applyPluck( main.table, main );
+            }
+
+            if ( Array.isArray( main.mixin ) ){
+              main.mixin.forEach( function( t ){ t.qAlias = t.qAlias || (data.qAlias + 'r'); });
+              applyMixin( main.table, main );
+            }
+
+            return {
+              type:   'left'
+            , alias:  data.qalias
+            , target: data.target
+            , on:     on
+            };
+          };
+
+          $query.mixin.forEach( function( target ){
+            var targetDal = dirac.dals[ target.table ];
+
+            // Immediate dependency not met and not specifying how to get there
+            if ( !targetDal && !target.where ){
+              throw new Error( 'Must specify how to relate table `' + table_name + '` to target `' + target.table + '`' );
+            }
+
+            var pivots = [];
+
+            if ( targetDal )
+            if ( targetDal.dependents[ table_name ] ){
+               pivots = Object.keys( targetDal.dependents[ table_name ] ).map( function( p ){
+                return {
+                  source_col: targetDal.dependents[ table_name ][ p ]
+                , target_col: p
+                };
+              });
+            }
+
+            var context = utils.extend({
+              source:     target.source || table_name
+            , target:     target.table
+            , alias:      target.alias || target.table
+            , pivots:     pivots
+            , qAlias:     'r'
+            }, target );
+
+            context.alias = context.alias || target.table;
+
+            if ( !$query.joins ){
+              $query.joins = [];
+            }
+
+            if ( !$query.columns ){
+              $query.columns = ['*'];
+            }
+
+            $query.columns.push({ table: context.alias, name: '*' })
+
+            $query.joins.push( tmpl( context ) );
+          });
+        };
+
         var applyMany = function( table_name, $query ){
           var tmpl = function( data ){
             var where = utils.extend( {}, data.where );
@@ -160,6 +255,11 @@ module.exports = function( options ){
             if ( Array.isArray( main.pluck ) ){
               main.pluck.forEach( function( t ){ t.qAlias = t.qAlias || (data.qAlias + 'r'); });
               applyPluck( main.table, main );
+            }
+
+            if ( Array.isArray( main.mixin ) ){
+              main.mixin.forEach( function( t ){ t.qAlias = t.qAlias || (data.qAlias + 'r'); });
+              applyMixin( main.table, main );
             }
 
             return {
@@ -250,6 +350,11 @@ module.exports = function( options ){
               applyPluck( main.table, main );
             }
 
+            if ( Array.isArray( main.mixin ) ){
+              main.mixin.forEach( function( t ){ t.qAlias = t.qAlias || (data.qAlias + 'r'); });
+              applyMixin( main.table, main );
+            }
+
             return {
               type: 'expression'
             , alias: data.alias
@@ -317,6 +422,7 @@ module.exports = function( options ){
               if ( Array.isArray( $query.many ) )   applyMany( table_name, $query );
               if ( Array.isArray( $query.one ) )    applyOne( table_name, $query );
               if ( Array.isArray( $query.pluck ) )  applyPluck( table_name, $query );
+              if ( Array.isArray( $query.mixin ) )  applyMixin( table_name, $query );
               return next();
             });
           });
