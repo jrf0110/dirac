@@ -119,6 +119,16 @@ module.exports = function( options ){
               });
             }
 
+            if ( targetDal )
+            if ( targetDal.dependencies[ table_name ] ){
+               pivots = pivots.concat( Object.keys( targetDal.dependencies[ table_name ] ).map( function( p ){
+                return {
+                  source_col: targetDal.dependencies[ table_name ][ p ]
+                , target_col: p
+                };
+              }));
+            }
+
             var context = utils.extend({
               source:     target.source || table_name
             , target:     target.table
@@ -201,6 +211,16 @@ module.exports = function( options ){
                 , target_col: p
                 };
               });
+            }
+
+            if ( targetDal )
+            if ( targetDal.dependencies[ table_name ] ){
+               pivots = pivots.concat( Object.keys( targetDal.dependencies[ table_name ] ).map( function( p ){
+                return {
+                  source_col: targetDal.dependencies[ table_name ][ p ]
+                , target_col: p
+                };
+              }));
             }
 
             var context = utils.extend({
