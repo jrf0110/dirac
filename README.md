@@ -629,11 +629,17 @@ How the DAL method would look:
     , this.client ? async.noop : tx.commit.bind( tx )
     ], function( error ){
       if ( error ){
+        // If there's an existing transaction, let's not
+        // automatically rollback
+        if ( this.client ){
+          return callback( error );
+        }
+
         return tx.rollback( callback.bind( null, error ) );
       }
 
       return callback();
-    });
+    }.bind( this ));
   }
 }
 ```
