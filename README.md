@@ -558,11 +558,84 @@ All dirac.dals are available under the `tx` object.
 
 __Example__
 
-```
+```javascript
 var tx = dirac.tx.create();
 
 tx.users.insert({ name: 'Ben Jammin' }, callback);
 tx.restaurants.update(5, { name: 'Uncle Billys' }, callback);
+```
+
+#### Composing Transactions
+
+Often times, you'll need to create custom functions that operate within its own transaction or part of an outside transaction. This is trivial to support and is outlined in the following example:
+
+Suppose we want to create a function that atomically deletes existing user groups and saves new ones.
+
+```javascript
+var tx = require('dirac').tx.create();
+tx.begin();
+
+// Create a user
+tx.users.insert({ name: 'Bob' }, function( error, user ){
+  if ( error ){
+    return tx.rollback();
+  }
+
+  // insert default groups
+  tx.users.updateGroups( user.id, ['consumer'], function( error ){
+    if ( error ){
+      return tx.rollback();
+    }
+
+    tx.commit();
+  });
+});
+```
+
+How the DAL method would look:
+
+```javascript
+{ name: 'users'
+, schema: {...}
+
+, updateGroups: function( user_id, groups, callback ){
+    // If this function is called within the context of an
+    // existing transaction, the client/transaction object
+    // will be available under `this.client`
+    var tx = this.client || dirac.tx.create();
+
+    async.series([
+      // If we're a part of an existing transaction, don't worry
+      // about writing `begin`
+      this.client ? async.noop : tx.begin.bind( tx )
+
+      // Remove existing groups
+    , tx.user_groups.remove.bind( tx.user_groups, {
+        user_id: user_id
+      })
+
+      // Insert if needed
+    , groups.length > 0
+      ? tx.user_groups.insert.bind(
+          tx.user_groups
+        , groups.map( function( group ){
+            return { user_id: user_id, group: group };
+          })
+        )
+      : async.noop
+
+      // If we're a part of an existing transaction, don't worry
+      // about writing `begin`
+    , this.client ? async.noop : tx.commit.bind( tx )
+    ], function( error ){
+      if ( error ){
+        return tx.rollback( callback.bind( null, error ) );
+      }
+
+      return callback();
+    });
+  }
+}
 ```
 
 ### Configure Data Access
