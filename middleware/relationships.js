@@ -139,11 +139,13 @@ module.exports = function( options ){
 
             context.alias = context.alias || target.table;
 
-            if ( !$query.columns ){
-              $query.columns = ['*'];
+            var columnsTarget = $query.type === 'select' ? 'columns' : 'returning';
+
+            if ( !$query[ columnsTarget ] ){
+              $query[ columnsTarget ] = ['*'];
             }
 
-            $query.columns.push( tmpl( context ) );
+            $query[ columnsTarget ].push( tmpl( context ) );
           });
         };
 
@@ -237,11 +239,13 @@ module.exports = function( options ){
               $query.joins = [];
             }
 
-            if ( !$query.columns ){
-              $query.columns = ['*'];
+            var columnsTarget = $query.type === 'select' ? 'columns' : 'returning';
+
+            if ( !$query[ columnsTarget ] ){
+              $query[ columnsTarget ] = ['*'];
             }
 
-            $query.columns.push({ table: context.alias, name: '*' })
+            $query[ columnsTarget ].push({ table: context.alias, name: '*' })
 
             $query.joins.push( tmpl( context ) );
           });
@@ -332,11 +336,13 @@ module.exports = function( options ){
 
             context.alias = context.alias || target.table;
 
-            if ( !$query.columns ){
-              $query.columns = ['*'];
+            var columnsTarget = $query.type === 'select' ? 'columns' : 'returning';
+
+            if ( !$query[ columnsTarget ] ){
+              $query[ columnsTarget ] = ['*'];
             }
 
-            $query.columns.push( tmpl( context ) );
+            $query[ columnsTarget ].push( tmpl( context ) );
           });
         };
 
@@ -422,16 +428,18 @@ module.exports = function( options ){
 
             context.alias = context.alias || target.table;
 
-            if ( !$query.columns ){
-              $query.columns = ['*'];
+            var columnsTarget = $query.type === 'select' ? 'columns' : 'returning';
+
+            if ( !$query[ columnsTarget ] ){
+              $query[ columnsTarget ] = ['*'];
             }
 
-            $query.columns.push( tmpl( context ) );
+            $query[ columnsTarget ].push( tmpl( context ) );
           });
         };
 
         var options = {
-          operations: ['find', 'findOne']
+          operations: ['find', 'findOne', 'update', 'insert']
         };
 
         Object.keys( dirac.dals ).forEach( function( table_name ){

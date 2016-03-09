@@ -874,7 +874,7 @@ var options = {
         ]
 };
 
-dirac.dals.orders.findOne( user.id, options, function( error, user ){
+dirac.dals.orders.findOne( user.id, options, function( error, order ){
   // Array.isArray( order.items ) => true
   // typeof order.restaurant === 'object' => true
   // typeof order.user === 'object' => true
@@ -883,6 +883,29 @@ dirac.dals.orders.findOne( user.id, options, function( error, user ){
 ```
 
 This is all done with a single query to the database without any result coercion.
+
+The relationships middleware is applicable to writes, using the `returning` statement:
+
+```javascript
+// Pull in the restaurant and user objects after updating
+var options = {
+  one:  [ { table: 'restaurants'
+          , alias: 'restaurant'
+          }
+        , { table: 'users'
+          , alias: 'user'
+            // Automatically pull out just an array of group names
+            // that apply to the user object
+          , pluck: [ { table: 'groups', column: 'name' } ]
+          }
+        ]
+};
+
+db.orders.update( 123, { status: 'pending'}, options, function( error, order ){
+  // order.restaurant => {...}
+  // order.user => {...}
+});
+```
 
 #### Relationships: One
 
