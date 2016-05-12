@@ -19,6 +19,44 @@ Dirac provides you with a decent foundation to start a postgres project with. It
 
 ## Examples
 
+High-level _single-query_ relationships helpers:
+
+```javascript
+var options = {
+          // order.user -> {}
+          // Make the user object available as a sub-json field
+  one:  [ { table: 'users', alias: 'user' }
+          // order.restaurant -> {}
+        , { table: 'restaurants', alias: 'restaurant'
+          // order.restaurant.hours -> []
+          // Within the restaurant object, fetch their hours in a json array
+          , many: [ { table: 'restaurant_hours', alias: 'hours' } ]
+          }
+        ]
+          // order.items -> []
+, many: [ { table: 'order_items', alias: 'items'
+          // order.items[].price|options
+          // Technically, just applies a left-join
+          , mixin:  [ { table: 'restaurant_items'
+                      , columns: ['price', 'options']
+                      }
+                    ]
+          // order.items[].tags -> [string]
+          // Pull item tags into an array of strings
+          , pluck:  [ { table: 'restaurant_item_tags'
+                      , column: 'name'
+                      , alias: 'tags'
+                      }
+                  ]
+          }
+        ]
+};
+
+dirac.dals.orders.findone( 123, options, function( error, order ){
+  /* ... */
+});
+```
+
 Register a new table with dirac:
 
 ```javascript
@@ -961,10 +999,15 @@ Like [One](#relationships-one), but mixes in the properties from the target into
 db.user_invoices.findOne( 1, {
  many: [ { table: 'user_invoice_orders'
          , alias: 'orders'
-         , mixin: [ { table: 'orders' } ]
+         , mixin: [ { table: 'orders'
+                    , columns:  [ 'restaurant_id'
+                                , { name: 'id', table: 'orders', alias: 'order_id' }
+                                ]
+                    }
+                  ]
          }
        ]
 })
 
-// { id: 1, orders: [{ id: 1, user_invoice_id: 1, user_id: 1 }, ... ] }
+// { id: 1, orders: [{ id: 1, user_invoice_id: 1, user_id: 1, restaurant_id, order_id }, ... ] }
 ```
