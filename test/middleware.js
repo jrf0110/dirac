@@ -373,6 +373,7 @@ describe ('Middleware', function(){
       , schema: {
           id:    { type: 'serial', primaryKey: true }
         , uid:   { type: 'integer', references: { table: 'users', column: 'id' } }
+        , foo:   { type: 'text' }
         }
       });
 
@@ -400,7 +401,7 @@ describe ('Middleware', function(){
         // Insert some noise in our data
       , dirac.dals.users.insert.bind( dirac.dals.users, { email: 'test1@test.com '} )
       , function( user, next ){
-          return dirac.dals.orders.insert( { uid: user.id }, next );
+          return dirac.dals.orders.insert( { uid: user.id, foo: 'bar' }, next );
         }
       , function( order, next ){
           dirac.dals.users.insert( { email: 'poop@poop.com' }, function( error, user ){
@@ -418,7 +419,7 @@ describe ('Middleware', function(){
           var orders = new Array(2)
             .join()
             .split(',')
-            .map( _.identity.bind( null, { uid: user.id }) );
+            .map( _.identity.bind( null, { uid: user.id, foo: 'bar' }) );
 
           dirac.dals.orders.insert( orders, function( error, results ){
             return next( error, user, results );
@@ -449,7 +450,7 @@ describe ('Middleware', function(){
           dirac.dals.invoices.findOne( invoice.id, {
             many: [ { table: 'invoice_orders'
                     , alias: 'orders' 
-                    , mixin: [{ table: 'orders'}]
+                    , mixin: [{ table: 'orders', columns: ['id', 'uid']}]
                     }
                   ]
           }, function( error, result ){
@@ -462,6 +463,7 @@ describe ('Middleware', function(){
               assert.equal( result.orders[ i ].iid, uio.iid );
               assert.equal( result.orders[ i ].oid, uio.oid );
               assert.equal( result.orders[ i ].uid, user.id );
+              assert.equal( result.orders[ i ].foo, undefined );
             });
 
             return next();
