@@ -245,7 +245,18 @@ module.exports = function( options ){
               $query[ columnsTarget ] = ['*'];
             }
 
-            $query[ columnsTarget ].push({ table: context.alias, name: '*' })
+            if ( Array.isArray( target.columns ) ){
+              $query[ columnsTarget ] = $query[ columnsTarget ].concat(
+                target.columns.map( function( column ){
+                  return typeof column === 'string'
+                    ? mosqlUtils.quoteObject( column, target.table )
+                    : column;
+                })
+              );
+            } else {
+              $query[ columnsTarget ].push({ table: context.alias, name: '*' })
+            }
+
 
             $query.joins.push( tmpl( context ) );
           });
