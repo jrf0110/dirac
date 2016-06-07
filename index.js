@@ -1,23 +1,13 @@
 const Database = require('./lib/database');
-const Relationships = require('./middleware/relationships');
+const relationships = require('./middleware/relationships');
+const Query = require('./lib/query');
+const Table = require('./lib/query');
 
 module.exports = options => {
-  var db = Database.create( options )
-    .use( Relationships.QueryMethods() );
+  return Database.create( options )
+    .use( relationships() );
+};
 
-  var oldRegister = db.register;
-
-  db.register = table =>{
-    return oldRegister.call( this, table ).mutate( db => {
-      // Remove old relationships transform
-      db.queryTransforms = db.queryTransforms.filter( transform => {
-        return !(transform instanceof Relationships.QueryTransform);
-      });
-
-      // Add the new transform with the updated graph
-      db.use( Relationships.Transform( db.graph ) );
-    });
-  };
-
-  return db;
-}
+module.exports.relationships = relationships;
+module.exports.query = ( q, options )=> Query.create( q, options );
+module.exports.table = options => Table.create( options );
