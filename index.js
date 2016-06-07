@@ -1,13 +1,23 @@
-var dirac = module.exports = require('./lib/dirac');
-var utils = require('./lib/utils');
-var diracSchema = require('./lib/dirac-table');
+const Database = require('./lib/database');
+const Relationships = require('./middleware/relationships');
 
-// Database Access
-dirac.db            = require('./lib/db');
+module.exports = options => {
+  var db = Database.create( options )
+    .use( Relationships.QueryMethods() );
 
-// Middleware
-dirac.tableRef      = require('./middleware/table-ref');
-dirac.castToJSON    = require('./middleware/cast-to-json');
-dirac.embeds        = require('./middleware/embeds');
-dirac.dir           = require('./middleware/dir');
-dirac.relationships = require('./middleware/relationships');
+  var oldRegister = db.register;
+
+  db.register = table =>{
+    return oldRegister.call( this, table ).mutate( db => {
+      // Remove old relationships transform
+      db.queryTransforms = db.queryTransforms.filter( transform => {
+        return !(transform instanceof Relationships.QueryTransform);
+      });
+
+      // Add the new transform with the updated graph
+      db.use( Relationships.Transform( db.graph ) );
+    });
+  };
+
+  return db;
+}
