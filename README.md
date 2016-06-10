@@ -1,1013 +1,228 @@
 # Dirac.js - Postgres ORM Thing
 
-Paul Dirac was a theoretical physicist who made fundamental contributions to the early development of both quantum mechanics and quantum electrodynamics. Dirac.js is a flexible and extendable database layer for Node Postgres.
+Paul Dirac was a theoretical physicist who made fundamental contributions to the early development of both quantum mechanics and quantum electrodynamics. Dirac.js is a flexible and extendable database querying library for Node Postgres.
 
-## Database as a Data Structure
-
-Dirac.js is built on top of [MoSQL](https://github.com/goodybag/mongo-sql), whose primary goal is to provide SQL query construction, but maintain value consistently throughout. This library extends that goal allowing you to reflect on the overall state of your database and retrieve your table structure in semantic JSON.
-
-Dirac provides you with a decent foundation to start a postgres project with. It allows you to easily group all of your table logic and schema into one file and keep things generally dry and well-namespaced.
-
-## Features
-
-* Non-destructive database syncing
-* Destructive database syncing
-* Standard crud
-* Robust JSON queries
-* Before/After Middleware
-* Easy-to-use database function organization
-
-## Examples
-
-High-level _single-query_ relationships helpers:
+__Quick Example__
 
 ```javascript
-var options = {
-          // order.user -> {}
-          // Make the user object available as a sub-json field
-  one:  [ { table: 'users', alias: 'user' }
-          // order.restaurant -> {}
-        , { table: 'restaurants', alias: 'restaurant'
-          // order.restaurant.hours -> []
-          // Within the restaurant object, fetch their hours in a json array
-          , many: [ { table: 'restaurant_hours', alias: 'hours' } ]
+// Find a random user
+db.users.findOne()
+  // id > 100
+  .where({ id: { $gt: 100 } })
+  // or id < 50
+  .where('id.$or.$lt', 50)
+  .limit(10)
+  // user {} will have an array of orders []
+  // This works efficientialy without multiple database trips
+  // and can be optimized by the user
+  .many('orders')
+  .execute()
+  .then( user => console.log( user.orders[0] ) )
+  .catch( error => )
+```
+
+__Install__
+
+```bash
+npm install -S dirac
+```
+
+__Index__
+
+
+* [Examples](#examples)
+* [Documentaiton](#examples)
+* [Why Dirac?](#why-dirac)
+
+## Why Dirac?
+
+When dirac was first written, the only seemingly viable ORM for node and postgres was Sequelize. For whatever reason, the style and source code did not jive with me. I wanted a simple no-brainer querying interface so I made dirac. I used dirac in production for a couple of small sites and one large site for years, and for the most part, the experience was fantastic.
+
+Now, we've got Knex and Bookshelf which seem to be really great libraries. Still, I'm left with the feeling that the abstractions are needlessly complex and the API doesn't seem as _nice_ as it could be. Admittedly, this is probably because I've been working with my own tools for the past 3 years. I just don't think I could live without [MoSQL](https://github.com/goodybag/mongo-sql) as my query builder. Its relentless obsession with query introspection and conformance to Postgres's SQL engine makes any query possible.
+
+### The Relationships Middleware
+
+About a year into Gooydbag.com's useage with dirac.js, I found myself needing to fetch sub-resources on top-level queries. They needed to be formatted as JSON documents like so:
+
+```javascript
+// Results:
+
+[ { id: 11
+  , name: 'John'
+    // Users->Orders
+  , orders: [ { id: 123
+              , user_id: 11
+                // Users->Orders->OrderItems
+              , items:  [ { ...} ]
+                // Users->Orders->Restaurant
+              , restaurant: { ... }
+              }
+            ]
+  }
+  ...
+]
+```
+
+I knew how to make the queries that would produce this sort of result (using JSON functions in postgres). The question was whether we could glean the application's database structure and _use that structure_ to make writing queries easier. So I set to work on a dirac plugin that did just that:
+
+```javascript
+var where = {};
+db.users.find( where, {
+  many: [ { table: 'orders'
+          , one:  [ { table: 'restaurants', alias: 'restaurant'} ]
+          , many: [ { table: 'order_items', alias: 'items' } ]
           }
         ]
-          // order.items -> []
-, many: [ { table: 'order_items', alias: 'items'
-          // order.items[].price|options
-          // Technically, just applies a left-join
-          , mixin:  [ { table: 'restaurant_items'
-                      , columns: ['price', 'options']
-                      }
-                    ]
-          // order.items[].tags -> [string]
-          // Pull item tags into an array of strings
-          , pluck:  [ { table: 'restaurant_item_tags'
-                      , column: 'name'
-                      , alias: 'tags'
-                      }
-                  ]
-          }
-        ]
-};
-
-dirac.dals.orders.findone( 123, options, function( error, order ){
-  /* ... */
+}, ( error, users )=>{
+  // users[]->orders[]->items[]
+  //                  ->restaurant{}
 });
 ```
 
-Register a new table with dirac:
+With those query options, each user returned in the results will have an array of orders, which also had an array of items and a restaurant object. The API is easy, and adding behaviors is simple because we're just working with JSON objects.
+
+The current syntax isn't much different:
 
 ```javascript
-var dirac = require('dirac');
-
-dirac.register({
-  name: 'users'
-, schema: {
-    id: {
-      type: 'serial'
-    , primaryKey: true
-    }
-
-  , groups: {
-      type: 'int[]'
-    , references: {
-        table: 'groups'
-      , column: 'id'
-      }
-    }
-
-  , email: {
-      type: 'text'
-    , unique: true
-    }
-
-  , createdAt: {
-      type: 'timestamp'
-    , default: 'now()'
-    }
-  }
-
-  // Add your own custom functions
-, findOneWithGroups: function( user_id, callback ){
-    return this.find( user_id, {
-      joins: { /* add appropriate joins */ }
-    }, callback );
-  }
-});
-```
-
-Connect to your database, sync, and query:
-
-```javascript
-dirac.init('postgres://server/my_database');
-// or
-dirac.init({
-  host:     'localhost'  // <- this actually isn't required because host defaults to localhost
-, database: 'my_database'
-});
-
-// Tell dirac to use all of the schemas in `/tables`
-dirac.use( dirac.dir( __dirname + '/tables' ) );
-
-// Creates new tables, performs non-destructive schema changes
-db.sync(); // Optionally pass { force: true } to do a complete wipe
-
-// You do not need to supply a callback.
-// You can start querying right away since node-pg
-// queues queries until ready
-dirac.dals.users.find({ id: { $gt: 5 } }, function(error, users){
-  /* ... */
-});
-
-// If the first parameter to findOne isn't an object, we assume we're querying by id
-// Dirac wraps the value in an object like this: { id: 57 }
-dirac.dals.users.findOne( 57, function(error, user){ /* ... */ });
-
-// Update user 57, set name = 'poop' returning "users".*
-dirac.dals.users.update( 57, { name: "poop" }, { returning: ['*'] }, function(error, users){
-  /* ... */
-});
-
-// delete from users where name = "poop" returning *
-dirac.dals.users.remove( { name: "poop" }, { returning: ['*'] }, function(error, users){
-  /* ... */
-});
-```
-
-## API
-
-Dirac has two namespaces:
-
-* Root
-* Database
-
-The Root namespace is for top-level non-table specific methods while the Databasse namepace is for table specfic methods
-
-### Root
-
-#### dirac.init( connStr [options], [options] )
-
-Connect to Postgres
-
-__Arguments:__
-
-* Connection String or Options
-* Options
-  - Must contain property called ```connStr``` or ```host```, ```port```, and ```database```
-  - Will mix into ```pg.defaults```
-
-___Options:___
-
-* ```connectionString```
-
-
-#### dirac.dropAllTables( [callback] )
-
-Drops all tables registered in dirac.
-
-__Arguments:__
-
-* Callback ```(error)```
-
-#### dirac.register( name, schema )
-
-Registers a new table or view with dirac. Will not actually create the table until ```dirac.sync()``` is called. Alternatively, you could call: ```dirac.dals.table_name.createIfNotExists()``` to manually add it. However, ```sync``` will resolve table dependencies and it will also save the database state so dirac can reason about your current table structure.
-
-__Arguments:__
-
-* Name - name of the table
-* Schema - as described in [https://github.com/goodybag/mongo-sql](https://github.com/goodybag/mongo-sql) create table statement definitions
-
-__Example:__
-
-```javascript
-// Register table
-dirac.register({
-  name: 'users'
-, schema: {
-    id: {
-      type: 'serial'
-    , primaryKey: true
-    }
-  , name: { type: 'text' }
-  }
-});
-
-// Register View
-dirac.register({
-  name: 'bobs'
-, type: 'view'
-, query: {
-    type: 'select'
-  , table: 'users'
-  , where: { name: { $ilike: 'bob' } }
-  }
-});
-```
-
-#### dirac.sync( options )
-
-Perform non-destructive syncs:
-
-* Add new tables
-* Add new columns
-* Add column constraints
-
-Options:
-
-* force - If true, will perform a destructive sync, thus clearing any orphan columns
-
-#### dirac.use( middleware )
-
-Pass a function to dirac to be called whenever ```dirac.init``` is called. Useful for initializing before/after filters and adding database-wide properties to all schemas.
-
-__Arguments:__
-
-* middleware( dirac ) - the function that will be called when dirac is initialized. It's passed a single parameter (the dirac module).
-
-__Example:__
-
-```javascript
-/**
- * db/middleware/created-at.js
- */
-
-var utils = require('utils');
-
-// Middleware automatically adds created_at/updated_at fields to schemas
-module.exports = function( options ){
-  return function( dirac ){
-    utils.defaults( options, {
-      createdAt: {
-        name: 'created_at'
-      , type: 'timestamp'
-      , default: 'now()'
-      }
-    , updatedAt: {
-        name: 'updated_at'
-      , type: 'timestamp'
-      , default: 'now()'
-      }
-    });
-
-    // Adds fields to a DAL
-    var addFields = function( dal ){
-      var schema = dirac.dals[ dal ].schema;
-
-      // Add createdAt if it's not already there
-      if ( !(options.createdAt.name in schema) ){
-        schema[ options.createdAt.name ] = options.createdAt;
-      }
-
-      // Add updatedAt if it's not already there
-      if ( !(options.updatedAt.name in schema) ){
-        schema[ options.updatedAt.name ] = options.updatedAt;
-      }
-    };
-
-    // Before filter adds updatedAt = 'now()' to the update query
-    var updateFilter = function( $query, schema, next ){
-      // Updates may be on values or updates
-      var values = 'values' in $query ? $query.values : $query.updates;
-
-      values[ options.updatedAt.name ] = 'now()';
-
-      next();
-    };
-
-    // Registers before filters to update updatedAt
-    var addFilters = function( dal ){
-      dirac.dals[ dal ].before( 'update', updateFilter );
-    };
-
-    // Add fields to each DAL
-    Object.keys( dirac.dals ).forEach( addFields )
-
-    // Add filters to each DAL
-    Object.keys( dirac.dals ).forEach( addFilters )
-  };
-};
-```
-
-```javascript
-/**
- * db/index.js
- */
-
-var middleware = {
-  createdAt: require('./middleware/created-at')
-};
-
-dirac.use(
-  middleware.createdAt({
-    updatedAt: {
-      name: 'last_updated'
-    , type: 'timestamp'
-    , default: 'now()'
-    }
+db.users.find()
+  .many({
+    table: 'orders'
+  , one:  [ { table: 'restaurants', alias: 'restaurant'} ]
+  , many: [ { table: 'order_items', alias: 'items' } ]
   })
-);
-
-// DAL registration
-// ...
-// ...
-
-// After init is called, all functions specified in use are called
-dirac.init( config.db );
+  .execute()
+  .then( users => ... )
+  .catch( error => ... )
 ```
 
-#### dirac.createTable( )
+Let's go over what the actual differences between `1.0.0` and older versions:
 
-Explicitly create a DALs table. You don't really need to use this unless you're adding new DALs, even then, _you should just call ```sync```_
+#### No more singletons
 
-#### dirac.saveCurrentDbState( )
-
-Save an entry in the dirac_schemas table of the current DAL state in memory. This happens everytime you call ```sync```
-
-#### dirac.setMoSql( instance )
-
-Sets dirac's instance of [MoSQL](https://github.com/goodybag/mongo-sql). Useful if you're already using MoSQL in your project.
-
-### Database
-
-All table interfaces are accessed through the ```dirac.dals``` namespace. Each table is defined as an instance of Dirac.Dal.
-
-#### dirac.dals.table_name.find( $query, [options], callback )
-
-Select documents in ```table_name```. ```$query``` object is the ```where``` property of a MoSQL object. ```options``` is everything else.
-
-__Arguments:__
-
-* $query - MoSQL conditional query ( select where clause )
-* options - Anything else that would go in a MoSQL query ( limit, offset, groupBy, etc )
-* callback - ```function( error, results ){ }```
-
-__Example:__
+Previously, dirac exported a singleton that the user interacted with; Accepting that dirac and postgres were just pieces of their environment that they couldn't truly control. Now, dirac exports factories to its various object definitions. The default export is a function that creates `Database` instances. You can alternatively dig into `lib/` and make your own.
 
 ```javascript
-// Query where condition
-var $query = {
-  rating: { $gte: 3.5 }
-, high_score: { $lt: 5000 }
-, name: { $in: [ 'Bob', 'Alice', 'Joe', 'Momma' ] }
-};
+var db = require('dirac')('postgres://localhost:5432/test_db');
 
-// Other options for the query
-var options = {
-  columns: [
-    '*' // users.*
-  , {   // Get average user high_score
-      type:       'average'           // Name of the function
-    , as:         'average_score'     // Name of the column
-    , expression: 'users.high_score'  // Function argument
-    }
-  ]
-, offset: 50
-, limit:  25
-, order: { column: 'id', direction: 'desc' }
-, group: [ 'id', 'name' ]
-};
+// Alternatively:
+var Database = require('dirac/lib/database');
+var db = new Database({ connectionString: 'postgres://localhost:5432/test_db' });
+```
 
-dirac.dals.users.find( $query, options, function( error, results ){
-  /* ... */
+#### Immutability by default (it's configurable, though)
+
+Immutable objects are easier to reason about. Knowing that the instance you're working with won't be mutated by the outside world, and more importantly, that the changes you make won't affect other consumers is extremely important. That's why dirac `1.0.0` started with Immutable primitives.
+
+```javascript
+var db = require('dirac')('postgres://localhost:5432/test_db');
+
+// Apply a results transform to the database instance
+// db2 !== db;
+var db2 = db.after( (results, query) => {
+  if ( query.table() === 'users' ){
+    return results.map( user => new User( user ) );
+  }
+
+  return result;
 });
+
+// Make all queries originating from trollDB use the `trolls` table
+var trollDB = db2.before( query => query.table('trolls') );
 ```
 
-#### dirac.dals.table_name.findOne( $query, [options], callback)
+Each change to the database object creates a _new_ database instance, inheriting all properties from the original db instance. This underscores the unifying concept in dirac 1.0.0; Query Generators.
 
-Identical to find only it adds a ```limit: 1``` to the options and will return an object rather than an array.  Substitute an ID for $query.
+#### Query Generators, or everything through the query object
 
-__Arguments:__
-
-* $query - MoSQL conditional query ( select where clause ) or ID
-* options - Anything else that would go in a MoSQL query ( limit, offset, groupBy, etc )
-* callback - ```function( error, result ){ }```
-
-#### dirac.dals.table_name.remove( $query, [options], callback )
-
-Removes a document from the database. Substitute an ID for $query.
-
-__Arguments:__
-
-* $query - MoSQL conditional query ( select where clause ) or ID
-* options - Anything else that would go in a MoSQL query ( returning, etc )
-* callback - ```function( error, result ){ }```
-
-#### dirac.dals.table_name.update( $query, $update, [options] callback )
-
-Update documents in the database. Substitute an ID for $query.
-
-__Arguments:__
-
-* $query - MoSQL conditional query ( select where clause ) or ID
-* $update - Object whose keys map to column names and values map to values
-* options - Anything else that would go in a MoSQL query ( returning, etc )
-* callback - ```function( error, result ){ }```
-
-#### dirac.dals.table_name.insert( document, [options], callback )
-
-Insert a doument
-
-__Arguments:__
-
-* document - Object whose keys map to column names and values map to values
-* options - Anything else that would go in a MoSQL query ( returning, etc )
-* callback - ```function( error, result ){ }```
-
-#### dirac.dals.table_name.before( [fnName], handler... )
-
-Add a _before_ filter to the DAL. Before filters are like middleware layers that get run before the query is executed. You can add as long as a chain as you'd like.  ```...``` denotes you can add as many handlers as you want.
-
-__Arguments:__
-
-* fnName [optional] - If provided, will add the filter only to the method on the dal, otherwise will add on all methods.
-* handler - The logic for your before filter. Will be called withe following arguments:
-  + $query - The full MoSQL query object along with the values
-  + schema - The schema for the current table
-  + next - A function to tell dirac to go the next function in the before stack
-           (If you pass an argument to ```next```, dirac assumes that it is an
-            error and will send the value back to the consumers callbaack)
-
-__Example:__
+The [Query Object](Link to query docs) is the primary interface to do _all_ database work. You could remove every other concept in the library and the Query object would still work quite nicely. Things like the Database and the Table objects are just a means to creating Query objects. They're a class of factories that make queries that inherit useful members from its parent.
 
 ```javascript
-dirac.register({
-  name: 'books'
+var db = require('dirac')('postgres://localhost:5432/test_db');
+
+// query inherits db's connection string.
+var query = db.query().table('users').where('id', 1);
+
+var trollDB = db2.before( query => query.table('trolls') );
+
+// Troll query inherits trollDB's query transforms
+// when trollQuery is executed, it will run a transformed version of itself
+var trollQuery = trollDb.query().table('users').where('name', { $lt: 'bob' });
+
+var users = db.table('users');
+var trolls = trollDb.table('users' /* anything could go here,
+                                      because it'll be transformed */ );
+
+// Querying from users comes with some defaults
+var usersQuery = users.query();
+assert.equal( usersQuery.table(), 'users' );
+
+// So does the troll users table
+var trollQuery = trolls.query();
+// This is still 'users', until we execute and get the transformed version
+assert.equal( trollQuery.table(), 'users' );
+assert.equal( trollQuery.getTransformedQuery().table(), 'trolls' );
+
+// Table QueryGenerator also comes with other query factories:
+var user123Query = users.findOne(123).many('orders');
+// Remove user 123, returning the user object and their orders in a JSON array
+var removeUserQuery = users.remove(123).returning({ many: [ table: 'orders' ] })
+
+// Or just use the Query by itself:
+var Query = require('dirac/lib/query');
+// Find user 123, returning the first result
+var query = Query
+  .create( {}, { connectionString: 'postgres://localhost:5432/test_db' })
+  .where('id', 123)
+  .after( results => results[0] );
+```
+
+#### Promises by default
+
+Promises are nice, except when some part of your environment doesn't use promises. I've found it easier to work with promises within your callback-oriented code than it is to work with callbacks in your promise-oriented code. I'm not sure why this is (I'm well aware of the ability to automatically convert between the two interfaces with Bluebird's API).
+
+```javascript
+db.users.findOne(123)
+  .many('orders')
+  .one({ table: 'regions', alias: 'region' })
+  .execute()
+  .then( user => console.log( 'user.id', user.id ) )
+  .catch( e => console.error( e ) );
+```
+
+#### Relationships on be default
+
+In previous versions, you had to explicitly use the relationships middleware (the ability to use many/one/pluck/mixin in queries). Now, the default export on dirac is a database factory that automatically includes the relationships middleware.
+
+#### `.register(...)` is totally optional, and it builds a dependency graph for you
+
+Previously, all interactions through dirac had to be performed after setting up DALs through the `dirac.register(...)` method. Now, using `.register(...)` is optional, unless you want to use the relationships middleware.
+
+As you register tables on your database instance, the dependency graph is updated and available as `db.graph`. 
+
+```javascript
+var db = require('dirac')()
+  .register({
+    name: 'users'
+  , schema: {
+      id: { type: 'serial', primaryKey: true }
+    }
+  });
+
+var orders = db.table({
+  name: 'orders'
 , schema: {
     id: { type: 'serial', primaryKey: true }
-  , name: {
-      type: 'text'
-
-      // Dirac doesn't know anything about this object
-      // So we can use it for our own benefit
-    , validation: {
-        type: 'string'
-      , max_length: 250
-      }
-    }
-  }
-})
-
-// Crappy validation
-dirac.dals.books.before( 'insert', function( $query, schema, next ){
-  if ( typeof $query.values.name != schema.name.validation.type )
-    return next({ type: 'VALIDATION_ERROR', message: 'invalid type for `name`' });
-
-  if ( $query.values.name.length > schema.validation.max_length )
-    return next({ type: 'VALIDATION_ERROR', message: 'invalid length for `name`' });
-
-  /* ... */
-});
-```
-
-#### dirac.dals.table_name.after( [fnName], handler... )
-
-Add an _after_ filter to the DAL. After filters are like middleware layers that get run after the query is executed. You can add as long as a chain as you'd like.  ```...``` denotes you can add as many handlers as you want.
-
-__Arguments:__
-
-* fnName [optional] - If provided, will add the filter only to the method on the dal, otherwise will add on all methods.
-* handler - The logic for your after filter. Will be called withe following arguments:
-  + results - The results from the query
-  + $query - The full MoSQL query object along with the values
-  + schema - The schema for the current table
-  + next - A function to tell dirac to go the next function in the after stack
-           (If you pass an argument to ```next```, dirac assumes that it is an
-            error and will send the value back to the consumers callbaack)
-
-__Example:__
-
-```javascript
-dirac.register({
-  name: 'books'
-, schema: {
-    id: { type: 'serial', primaryKey: true }
-  , num_words: {
-      type: 'text'
-
-      // node-pg returns bigints as strings
-      // Tell casting after filter to cast to a number
-    , cast: 'number'
-    }
-  }
-})
-
-// Crappy casting
-dirac.dals.books.after( 'find', function( results, $query, schema, next ){
-  var casts = {};
-  for ( var key in schema ){
-    if ( 'cast' in schema ) casts[ key ] = schema[ key ][ cast ];
-  }
-
-  // Transform result set
-  for ( var i = 0, l = results.length; i < l; ++i ){
-    for ( var key in casts ){
-      switch ( casts[ key ] ){
-        case 'int':     results[ i ][ key ] = parseInt( results[ i ][ key ] ); break;
-        case 'number':  results[ i ][ key ] = parseFloat( results[ i ][ key ] ); break;
-        case 'string':  results[ i ][ key ] = "" + results[ i ][ key ]; break;
-        default: break;
-      }
-    }
+  , user_id: { type: 'int', references: { table: 'users', column: 'id' } }
   }
 });
-```
 
-### Transactions
+db = db.register( orders );
 
-Transactions can be made by created a transaction object via `dirac.tx.create()`. Normally, every query by default uses a pool client and releases it per request. You do not want to release a client back into the pool in the middle of a transaction, because that would be _very, very bad_.
+var ordersQuery = db.orders
+  .find()
+  .one({ table: 'users', alias: 'user' });
 
-For transactions, dirac allows you to access the same client to execute multiple queries until you commit or rollback.
-
-__Example:__
-
-```js
-var tx = dirac.tx.create();
-
-tx.begin(function(err) {
-  if ( err ) return tx.rollback();
-  tx.users.update(userId, balance: { $inc: 5 } }, function(err) {
-    if ( err ) return tx.rollback();
-    tx.users.insert(userId, balance: { $dec: 5 }, function(err) {
-      if ( err ) return tx.rollback();
-      tx.commit();
-    });
-  });
-});
-```
-
-This can be rather unwieldy so you could use a control library or abstract this further:
-
-```js
-var async = require('async')
-var tx = dirac.tx.create();
-
-async.series([
-  tx.begin.bind(tx)
-, tx.users.update.bind(tx.users, userId, { balance: { $inc: 5 } })
-, tx.users.update.bind(tx.users, userId, { balance: { $dec: 5 } })
-], function(err) {
-  if ( err ) return tx.rollback(); // rollback if any queries fail
-  tx.commit();
-});
-```
-
-If you need to apply [explicit table locks](http://www.postgresql.org/docs/9.4/static/explicit-locking.html)
-to a transaction, you can use `.lock(mode)` per table:
-
-```js
-async.series([
-  tx.begin.bind(tx)
-, tx.users.lock.bind(tx, 'ACCESS EXCLUSIVE')
-, tx.users.update.bind(tx.users, userId, { name: 'Billy' })
-, tx.commit.bind(tx)]);
-```
-
-To query the following
-
-```sql
-BEGIN;
-LOCK TABLE users IN ACCESS EXCLUSIVE MODE;
-UPDATE "users" set "users"."name" = 'Billy';
-COMMIT;
-```
-
-#### dirac.tx.create()
-
-Creates a new `tx` object which accesses the same pg.Client for transactional queries.
-
-#### tx.begin( callback )
-
-Invokes a `begin` statement
-
-#### tx.commit( callback )
-
-Invokes the `commit` statement and releases the `tx` client. Subsequent queries will throw an error.
-
-#### tx.rollback( callback )
-
-If you run into an error you can `rollback` and release the client. Subsequent queries will throw an error.
-
-#### tx data access
-
-All dirac.dals are available under the `tx` object.
-
-__Example__
-
-```javascript
-var tx = dirac.tx.create();
-
-tx.users.insert({ name: 'Ben Jammin' }, callback);
-tx.restaurants.update(5, { name: 'Uncle Billys' }, callback);
-```
-
-#### Composing Transactions
-
-Often times, you'll need to create custom functions that operate within its own transaction or part of an outside transaction. This is trivial to support and is outlined in the following example:
-
-Suppose we want to create a function that atomically deletes existing user groups and saves new ones.
-
-```javascript
-var tx = require('dirac').tx.create();
-tx.begin();
-
-// Create a user
-tx.users.insert({ name: 'Bob' }, function( error, user ){
-  if ( error ){
-    return tx.rollback();
-  }
-
-  // insert default groups
-  tx.users.updateGroups( user.id, ['consumer'], function( error ){
-    if ( error ){
-      return tx.rollback();
-    }
-
-    tx.commit();
-  });
-});
-```
-
-How the DAL method would look:
-
-```javascript
-{ name: 'users'
-, schema: {...}
-
-, updateGroups: function( user_id, groups, callback ){
-    // If this function is called within the context of an
-    // existing transaction, the client/transaction object
-    // will be available under `this.client`
-    var tx = this.client || dirac.tx.create();
-
-    async.series([
-      // If we're a part of an existing transaction, don't worry
-      // about writing `begin`
-      this.client ? async.noop : tx.begin.bind( tx )
-
-      // Remove existing groups
-    , tx.user_groups.remove.bind( tx.user_groups, {
-        user_id: user_id
-      })
-
-      // Insert if needed
-    , groups.length > 0
-      ? tx.user_groups.insert.bind(
-          tx.user_groups
-        , groups.map( function( group ){
-            return { user_id: user_id, group: group };
-          })
-        )
-      : async.noop
-
-      // If we're a part of an existing transaction, don't worry
-      // about writing `begin`
-    , this.client ? async.noop : tx.commit.bind( tx )
-    ], function( error ){
-      if ( error ){
-        // If there's an existing transaction, let's not
-        // automatically rollback
-        if ( this.client ){
-          return callback( error );
-        }
-
-        return tx.rollback( callback.bind( null, error ) );
-      }
-
-      return callback();
-    }.bind( this ));
-  }
-}
-```
-
-### Configure Data Access
-
-Dirac exposes mongo-sql and pg instances through `dirac.db`.
-This way your database layer can reuse the same connection pool
-and data access configurations.
-
-#### dirac.db.mosql
-
-The mongo-sql instance
-
-#### dirac.db.setMosql( mosql )
-
-Replaces the mosql object
-
-__Arguments__
-* mosql - mongo-sql object
-
-#### dirac.db.pg
-
-The node-pg instance
-
-#### dirac.db.setPg( pg )
-
-Replaces the node-pg object
-
-__Arguments__
-
-* pg - node-pg object
-
-#### Example of setting dirac.db.pg
-
-```js
-// Customizing pg so we parse timestamps into moment objects
-var pg = require('pg');
-var dirac = require('dirac');
-
-var timestampOid = 1114;
-var parseTimestamp = function(str) {
-  return moment(str);
-}
-
-pg.types.setTypeParser(timestampOid, parseTimestamp);
-
-// Now abstractions such as dirac can reuse the same pg.
-dirac.db.setPg( pg );
-```
-
-## Examples
-
-### Getting Started
-
-Directory layout:
-
-```
-- my-app/
-  - db/
-    - tables/
-      - table_1.js
-      - table_2.js
-      - table_3.js
-    - index.js
-```
-
-__index.js:__
-
-```javascript
-/**
- * db.js
-**/
-var dirac = require('dirac');
-var config = require('../config');
-
-// Tell dirac to use all of the schemas in `/tables`
-dirac.use( dirac.dir( __dirname + '/tables' ) );
-
-dirac.init( config.db );
-
-// Get our database schemas up to date
-// This will add any tables and columns
-dirac.sync();
-
-// Expose dals on base db layer so I can do something like:
-//   db.users.findOne( 7, function( error, user){ /* ... */ });
-for ( var k in dirac.dals ) module.exports[ k ] = dirac.dals[ k ];
-```
-
-__table_1.js:__
-
-```javascript
-/**
- * table_1.js
- * Export a JavaScript object containing the
- * table.name, table.schema
-**/
-module.exports = {
-  name: 'table_1'
-, schema: {
-    id:       { type: 'serial', primaryKey: true }
-  , name:     { type: 'text' }
-  , content:  { type: 'text' }
-  }
-, last_updated: {
-    type: 'date'
-  , withoutTimezone: true
-  , default: 'now()'
-  }
-};
-```
-
-### Querying
-
-One of the nicest parts about dirac is its robust querying DSL. Since it's built on top of MoSQL, we get to take advantage of a fairly complete SQL API.
-
-__Find a single user by id:__
-
-```javascript
-dirac.dals.users.findOne( 7, function( error, user ){ /* ... */ });
-```
-
-__Find a user, join on groups and aggregate into array:__
-
-```javascript
-var options = {
-  columns: [
-    // Defaults to "users".*
-    '*'
-
-    // Columns can have sub-queries and expressions like this array_agg function
-  , { type: 'array_agg', expression: 'groups.name', as: 'groups' }
-  ]
-
-  // Specify all joins here
-, joins: {
-    groups: {
-      type: 'left'
-    , on: { 'user_id': '$users.id$' }
-    }
-  }
-}
-
-// select "users".*, array_agg( groups.name ) as "groups" from "users"
-//   left join "groups" on "groups"."user_id" = "users"."id"
-//
-// Now the user object will have an array of group names
-dirac.dals.users.findOne( 7, function( error, user ){ /* ... */ });
-```
-
-__Sub-Queries:__
-
-You can put sub-queries in lots of places with dirac/MoSQL
-
-```javascript
-var options = {
-  // Construct a view called "consumers"
-  with: {
-    consumers: {
-      type: 'select'
-    , table: 'users'
-    , where: { type: 'consumer' }
-    }
-  }
-}
-
-var $query = {
-  name: { $ilike: 'Alice' }
-, id: {
-    $in: {
-      type:     'select'
-    , table:    'consumers'
-    , columns:  ['id']
-    }
-  }
-};
-
-dirac.dals.users.find( $query, options, function( error, consumers ){ /* ... */ });
-```
-
-## Built-in Middleware
-
-Dirac has the following built-in middleware modules:
-
-* Cast To JSON
-* Dir
-* Embeds
-* [Relationships](#middleware-relationships)
-* Table Ref
-
-### Middleware Relationships
-
-The relationships middleware allows you to easily embed foreign data in your result set. Dirac uses the schemas defined with `dirac.register` to build a dependency graph of your schemas with pivots on foreign key relationships. It uses this graph to build the proper sub-queries to embed one-to-one or one-to-many type structures.
-
-__Relationships Directives__
-
-* [One](#relationships-one)
-* [Many](#relationships-many)
-* [Pluck](#relationships-pluck)
-* [Mixin](#relationships-mixin)
-
-__Full Blown Example:__
-
-```javascript
-var dirac = require('dirac');
-
-// Make sure to call relationships before registering tables
-dirac.use( dirac.relationships() );
-dirac.use( dirac.dir( __dirname + '/tables' ) );
-
-dirac.init( config );
-
-// Embed Order Items as an array on the order
-// Embed user and restaurant as json objects
-var options = {
-  many: [ { table: 'order_items'
-          , alias: 'items'
-            // Automatically do the left join to get item options
-          , mixin: [{ table: 'order_item_options' }]
-          }
-        ]
-, one:  [ { table: 'restaurants'
-          , alias: 'restaurant'
-          }
-        , { table: 'users'
-          , alias: 'user'
-            // Automatically pull out just an array of group names
-            // that apply to the user object
-          , pluck: [ { table: 'groups', column: 'name' } ]
-          }
-        ]
-};
-
-dirac.dals.orders.findOne( user.id, options, function( error, order ){
-  // Array.isArray( order.items ) => true
-  // typeof order.restaurant === 'object' => true
-  // typeof order.user === 'object' => true
-  // Array.isArray( order.user.groups ) => true
-});
-```
-
-This is all done with a single query to the database without any result coercion.
-
-The relationships middleware is applicable to writes, using the `returning` statement:
-
-```javascript
-// Pull in the restaurant and user objects after updating
-var options = {
-  one:  [ { table: 'restaurants'
-          , alias: 'restaurant'
-          }
-        , { table: 'users'
-          , alias: 'user'
-            // Automatically pull out just an array of group names
-            // that apply to the user object
-          , pluck: [ { table: 'groups', column: 'name' } ]
-          }
-        ]
-};
-
-db.orders.update( 123, { status: 'pending'}, options, function( error, order ){
-  // order.restaurant => {...}
-  // order.user => {...}
-});
-```
-
-#### Relationships: One
-
-Applies a one-to-one relationship on the query:
-
-```javascript
-// orders (id, user_id, ...)
-// users (id, ...)
-dirac.dals.orders.find( {}, {
-  one: [{ table: 'users', alias: 'user' }]
-})
-
-// [{ id: 1, user: { ... } }, { id: 2, user: { ... } }]
-```
-
-#### Relationships: Many
-
-Applies a one-to-many relationship on the query:
-
-```javascript
-// users (id, ...)
-// orders (id, user_id, ...)
-dirac.dals.users.findOne( 32, {
-  many: [{ table: 'orders', alias: 'orders' }]
-})
-
-// { id: 32, orders: [{ id: 1, user_id: 32, ... }, { id: 2, user_id: 32, ... }] }
-```
-
-#### Relationships: Pluck
-
-Like [Many](#relationships-many), but maps on a single field:
-
-```javascript
-// users (id, ...)
-// groups (id, user_id, name, ...)
-dirac.dals.users.findOne( 32, {
-  pluck: [{ table: 'groups', column: 'name' }]
-})
-
-// { id: 32, groups: ['client', 'cool-guys'] }
-```
-
-#### Relationships: Mixin
-
-Like [One](#relationships-one), but mixes in the properties from the target into the source (basically a more abstract join).
-
-```javascript
-// Useful for junction tables
-// user_invoices (id, user_id, ...)
-// user_invoice_orders (id, user_invoice_id, order_id, ...)
-// orders (id, ...)
-db.user_invoices.findOne( 1, {
- many: [ { table: 'user_invoice_orders'
-         , alias: 'orders'
-         , mixin: [ { table: 'orders'
-                    , columns:  [ 'restaurant_id'
-                                , { name: 'id', table: 'orders', alias: 'order_id' }
-                                ]
-                    }
-                  ]
-         }
-       ]
-})
-
-// { id: 1, orders: [{ id: 1, user_invoice_id: 1, user_id: 1, restaurant_id, order_id }, ... ] }
+var usersQuery = db.users
+  .findOne(123)
+  .many('orders');
 ```
