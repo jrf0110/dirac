@@ -4,7 +4,12 @@ const Query = require('./lib/query');
 const Table = require('./lib/query');
 
 module.exports = options => {
-  return Database.create( options )
+  if ( typeof options === 'string' ){
+    options = { connectionString: options };
+  }
+
+  return Database
+    .create( options )
     .use( relationships() );
 };
 
