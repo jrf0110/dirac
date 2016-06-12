@@ -1,4 +1,5 @@
 var assert = require('assert');
+var PGPool = require('pg-pool');
 var Database = require('../lib/database');
 var Table = require('../lib/table');
 
@@ -6,7 +7,30 @@ describe('Database', ()=>{
   it('Database.create()', ()=>{
     var database = Database.create();
 
-    assert.equal( database.connectionString, 'postgres://localhost:5432' );
+    assert.equal(
+      database.clientOptions.toString()
+    , `postgres://${process.env.USER}@localhost:5432/${process.env.USER}`
+    );
+
+    assert( database.pool instanceof PGPool );
+
+    database = Database.create('postgres://localhost:5432/test');
+
+    assert.equal(
+      database.clientOptions.toString()
+    , 'postgres://john@localhost:5432/test'
+    );
+
+    database = Database.create({
+      user: 'foo'
+    , host: 'bar'
+    , database: 'baz'
+    });
+
+    assert.equal(
+      database.clientOptions.toString()
+    , 'postgres://foo@bar:5432/baz'
+    );
   });
 
   it('.table(...)', ()=>{
@@ -78,5 +102,60 @@ describe('Database', ()=>{
     , 'users'
     , 'user_books'
     ]);
+  });
+
+  it('.host(val)', ()=>{
+    var database = Database.create().host('foobar');
+
+    assert.equal(
+      database.clientOptions.toString()
+    , `postgres://${process.env.USER}@foobar:5432/${process.env.USER}`
+    );
+
+    assert.equal( database.pool.options.host, 'foobar' );
+  });
+
+  it('.port(val)', ()=>{
+    var database = Database.create().port(1234);
+
+    assert.equal(
+      database.clientOptions.toString()
+    , `postgres://${process.env.USER}@localhost:1234/${process.env.USER}`
+    );
+
+    assert.equal( database.pool.options.port, 1234 );
+  });
+
+  it('.user(val)', ()=>{
+    var database = Database.create().user('foobar');
+
+    assert.equal(
+      database.clientOptions.toString()
+    , `postgres://foobar@localhost:5432/${process.env.USER}`
+    );
+
+    assert.equal( database.pool.options.user, 'foobar' );
+  });
+
+  it('.database(val)', ()=>{
+    var database = Database.create().database('foobar');
+
+    assert.equal(
+      database.clientOptions.toString()
+    , `postgres://${process.env.USER}@localhost:5432/foobar`
+    );
+
+    assert.equal( database.pool.options.database, 'foobar' );
+  });
+
+  it('.ssl(val)', ()=>{
+    var database = Database.create().ssl(true);
+
+    assert.equal(
+      database.clientOptions.toString()
+    , `postgres://${process.env.USER}@localhost:5432/${process.env.USER}?ssl=true`
+    );
+
+    assert.equal( database.pool.options.ssl, true );
   });
 });

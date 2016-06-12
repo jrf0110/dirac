@@ -1,6 +1,20 @@
 var assert = require('assert');
-var Table = require('../lib/table');
+var PGPool = require('pg-pool');
+var TableOriginal = require('../lib/table');
 var Query = require('../lib/query');
+
+var pool = new PGPool();
+
+class Table extends TableOriginal {
+  static create( options ){
+    return new Table( options );
+  }
+
+  constructor( options = {} ){
+    options.pool = pool;
+    super( options );
+  }
+}
 
 describe('Table', ()=>{
   it('Table.create()', ()=>{
@@ -59,6 +73,9 @@ describe('Table', ()=>{
     assert.equal( query.mosqlQuery.type, 'select' );
     assert.equal( query.mosqlQuery.table, 'foo' );
     assert.equal( query.mosqlQuery.where.id, 100 );
+    assert.deepEqual( query.getTransformedResult([ { foo: 'bar' }, { baz: 'bar' } ] ), {
+      foo: 'bar'
+    });
   });
 
   it('.findOne({condition})', ()=>{
@@ -134,7 +151,7 @@ describe('Table', ()=>{
       name: 'foo'
     , type: 'view'
     , schema: { id: { type: 'serial', primarykey: true } }
-    , expression:   Query.create( {}, { mosql: require('mongo-sql') })
+    , expression:   Query.create( {}, { pool })
                          .type('select')
                          .table('users')
                          .columns('id')

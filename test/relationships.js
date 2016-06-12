@@ -1,6 +1,9 @@
 var assert = require('assert');
+var PGPool = require('pg-pool');
 var Database = require('../lib/database');
 var Relationships = require('../middleware/relationships');
+
+var pool = new PGPool();
 
 describe('Relationships', ()=>{
   it('database.use( relationships )', ()=>{
@@ -20,7 +23,7 @@ describe('Relationships', ()=>{
 
   describe('Relationships.Query', ()=>{
     it('.one(...)', ()=>{
-      var query = Relationships.Query.create()
+      var query = Relationships.Query.create( {}, { pool } )
         .one({ table: 'users' });
 
       assert.deepEqual( query.mosqlQuery.one, [
@@ -40,7 +43,7 @@ describe('Relationships', ()=>{
     });
 
     it('.many(...)', ()=>{
-      var query = Relationships.Query.create()
+      var query = Relationships.Query.create( {}, { pool } )
         .many({ table: 'users' });
 
       assert.deepEqual( query.mosqlQuery.many, [
@@ -60,7 +63,7 @@ describe('Relationships', ()=>{
     });
 
     it('.mixin(...)', ()=>{
-      var query = Relationships.Query.create()
+      var query = Relationships.Query.create( {}, { pool } )
         .mixin({ table: 'users' });
 
       assert.deepEqual( query.mosqlQuery.mixin, [
@@ -80,7 +83,7 @@ describe('Relationships', ()=>{
     });
 
     it('.pluck(...)', ()=>{
-      var query = Relationships.Query.create()
+      var query = Relationships.Query.create( {}, { pool } )
         .pluck({ table: 'users' });
 
       assert.deepEqual( query.mosqlQuery.pluck, [

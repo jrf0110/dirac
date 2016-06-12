@@ -1,5 +1,6 @@
 const assert = require('assert');
 const mosql = require('mongo-sql');
+const PGPool = require('pg-pool');
 const QueryGenerator = require('../lib/query-generator');
 const Query = require('../lib/query');
 const Immutable = require('../lib/immutable');
@@ -7,8 +8,10 @@ const QueryTransform = require('../lib/query-transform');
 const ResultTransform = require('../lib/result-transform');
 
 describe('QueryGenerator', ()=>{
+  var pool = new PGPool();
+
   it('constructor()', ()=>{
-    var generator = new QueryGenerator();
+    var generator = new QueryGenerator({ pool });
 
     assert( generator instanceof Immutable );
 
@@ -17,46 +20,41 @@ describe('QueryGenerator', ()=>{
   });
 
   it('.getCreateQueryOptions()', ()=>{
-    var generator = new QueryGenerator({ connectionString: 'foo:bar' });
+    var generator = new QueryGenerator({ pool });
     var options = generator.getCreateQueryOptions();
 
     assert( 'mosql' in options );
-    assert.equal( options.connectionString, 'foo:bar' );
     assert.deepEqual( options.queryTransforms, [] );
     assert.deepEqual( options.resultsTransforms, [] );
   });
 
   it('.query( query )', ()=>{
-    var generator = new QueryGenerator();
+    var generator = new QueryGenerator({ pool });
     var query1 = generator.query();
 
     assert( query1 instanceof Query );
 
-    generator = new QueryGenerator({ connectionString: 'foo:bar' });
+    generator = new QueryGenerator({ pool });
     query1 = generator.query();
-
-    assert.equal( query1.connectionString, 'foo:bar' );
+    assert.equal( query1.pool, generator.pool );
   });
 
   it('.clone()', ()=>{
-    var generator1 = new QueryGenerator({ connectionString: 'foo:bar' })
+    var generator1 = new QueryGenerator({ pool })
       .before( query => query.where('foo', 'bar') )
       .after( results => results[0] );
 
-    var generator2 = generator1.clone();
+    var generator2 = generator1.clone().after( result => 1 );
 
-    assert.equal( generator2.connectionString, 'foo:bar' );
-
-    // Adding props to gen2 doesn'ta ffect gen1
-    generator2.connectionString = 'baz:bar';
-    assert.equal( generator1.connectionString, 'foo:bar' );
+    // Adding props to gen2 doesn't affect gen1
+    assert.equal( generator1.resultsTransforms.length, 1 );
 
     assert.equal( generator2.queryTransforms.length, 1 );
-    assert.equal( generator2.resultsTransforms.length, 1 );
+    assert.equal( generator2.resultsTransforms.length, 2 );
   });
 
   it('.use( middleware )', ()=>{
-    var generator1 = new QueryGenerator()
+    var generator1 = new QueryGenerator({ pool })
       .use( QueryTransform.create( query => query ) );
 
     assert.equal( generator1.queryTransforms.length, 1 );
@@ -71,7 +69,7 @@ describe('QueryGenerator', ()=>{
 
     assert.equal( generator1.resultsTransforms.length, 1 );
 
-    var generator3 = new QueryGenerator()
+    var generator3 = new QueryGenerator({ pool })
       .use( gen => gen.mutate( gen => {
         gen.before( query => query.where('foo', 'bar') );
         gen.after( results => results[0] );
@@ -86,7 +84,7 @@ describe('QueryGenerator', ()=>{
   });
 
   it('.before( transform )', ()=>{
-    var generator1 = new QueryGenerator()
+    var generator1 = new QueryGenerator({ pool })
       .before( query => query.where('foo', 'bar') )
       .before( query => query.where('bar.baz', 'foo') );
 
@@ -104,7 +102,7 @@ describe('QueryGenerator', ()=>{
   });
 
   it('.before( transform[] )', ()=>{
-    var generator1 = new QueryGenerator()
+    var generator1 = new QueryGenerator({ pool })
       .before([
         query => query.where('foo', 'bar')
       , query => query.where('bar.baz', 'foo')
@@ -125,7 +123,7 @@ describe('QueryGenerator', ()=>{
   });
 
   it('.after( transform )', ()=>{
-    var generator1 = new QueryGenerator()
+    var generator1 = new QueryGenerator({ pool })
       .after( results => results[0] )
       .after( result => {
         return { foo: result };
@@ -146,7 +144,7 @@ describe('QueryGenerator', ()=>{
   });
 
   it('.after( transform[] )', ()=>{
-    var generator1 = new QueryGenerator()
+    var generator1 = new QueryGenerator({ pool })
       .after([
         results => results[0]
       , result => { return { foo: result }; }

@@ -1,7 +1,21 @@
 var assert = require('assert');
 var mosql = require('mongo-sql');
-var Query = require('../lib/query');
+var PGPool = require('pg-pool');
+var QueryOriginal = require('../lib/query');
 var QueryTransform = require('../lib/query-transform');
+
+var pool = new PGPool();
+
+class Query extends QueryOriginal {
+  static create( query, options ){
+    return new Query( query, options );
+  }
+
+  constructor( query, options = {} ){
+    options.pool = pool;
+    super( query, options );
+  }
+}
 
 describe('Query', ()=>{
   it('constructor( query, options )', ()=>{
