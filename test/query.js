@@ -183,6 +183,30 @@ describe('Query', ()=>{
     });
   });
 
+  it('.columns([column])', ()=>{
+    var query1 = Query
+      .create({ type: 'select', table: 'users' });
+
+    assert.equal( query1.columns(), undefined );
+
+    var query2 = query1.columns('foo');
+
+    assert.equal( query1.columns(), undefined );
+    assert.deepEqual( query2.columns(), ['foo'] );
+  });
+
+  it('.returning([column])', ()=>{
+    var query1 = Query
+      .create({ type: 'select', table: 'users' });
+
+    assert.equal( query1.returning(), undefined );
+
+    var query2 = query1.returning('foo');
+
+    assert.equal( query1.returning(), undefined );
+    assert.deepEqual( query2.returning(), ['foo'] );
+  });
+
   it('.toStringAndValues()', ()=>{
     var query1 = Query.create({
       type: 'select'

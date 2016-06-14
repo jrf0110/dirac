@@ -24,7 +24,6 @@
   "gitHead": "f49aed817b0db67e83e2e359ed43d3c2a434992b",
   "readmeFilename": "README.md",
   "dependencies": {
-    "enum-stream": "^1.0.0",
     "lodash": "^4.13.1",
     "mongo-sql": "^2.7.2",
     "pg": "*",
