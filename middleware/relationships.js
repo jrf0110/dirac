@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const mosqlUtils = require('mongo-sql/lib/utils');
-const Query = require('../lib/Query');
+const Query = require('../lib/query');
 const QueryTransform = require('../lib/query-transform');
 const Database = require('../lib/database');
 
