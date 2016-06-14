@@ -105,6 +105,24 @@ describe('Table', ()=>{
     assert.equal( query.mosqlQuery.where.uuid, 'some_uuid' );
   });
 
+  it('.insert()', ()=>{
+    var table = Table.create({
+      name: 'foo'
+    });
+
+    var query = table.insert().values({ foo: 'bar' });
+
+    assert.equal( query.mosqlQuery.type, 'insert' );
+    assert.equal( query.mosqlQuery.table, 'foo' );
+    assert.deepEqual( query.mosqlQuery.values, { foo: 'bar' } );
+
+    query = table.insert({ bar: 'baz' });
+
+    assert.equal( query.mosqlQuery.type, 'insert' );
+    assert.equal( query.mosqlQuery.table, 'foo' );
+    assert.deepEqual( query.mosqlQuery.values, { bar: 'baz' } );
+  });
+
   it('.remove()', ()=>{
     var table = Table.create({
       name: 'foo'
