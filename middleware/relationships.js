@@ -4,21 +4,33 @@ const Query = require('../lib/query');
 const QueryTransform = require('../lib/query-transform');
 const Database = require('../lib/database');
 
-var oldRegister = Database.prototype.register;
-Database.prototype.register = function( table ){
-  return oldRegister.call( this, table ).mutate( database => {
-    var transform = Relationships.Transform( database.graph );
+class RelationshipsDatabase extends Database {
+  clone(){
+    var originalClone = Database.prototype.clone.call( this );
+    var clone = new RelationshipsDatabase( originalClone );
 
-    replaceTransform( database, transform );
-
-    // Update all tables to use the new transform
-    for ( var key in database.tables ){
-      database.tables[ key ].mutate( table => {
-        replaceTransform( table, transform );
-      });
+    for ( var key in originalClone ){
+      clone[ key ] = originalClone[ key ];
     }
-  });
-};
+
+    return clone;
+  }
+
+  register( table ){
+    return Database.prototype.register.call( this, table ).mutate( database => {
+      var transform = Relationships.Transform( database.graph );
+
+      replaceTransform( database, transform );
+
+      // Update all tables to use the new transform
+      for ( var key in database.tables ){
+        database.tables[ key ].mutate( table => {
+          replaceTransform( table, transform );
+        });
+      }
+    });
+  }
+}
 
 class QueryWithRelationships extends Query {
   one( subQuery ){
@@ -90,9 +102,9 @@ class RelationshipsQueryTransform extends QueryTransform {}
 
 var Relationships = module.exports = options => {
   return database => {
-    return database.mutate( database => {
-      database.Query = QueryWithRelationships;
-    });
+    var db = new RelationshipsDatabase( database );
+    db.Query = QueryWithRelationships;
+    return db;
   };
 };
 
