@@ -123,6 +123,29 @@ describe('Table', ()=>{
     assert.deepEqual( query.mosqlQuery.values, { bar: 'baz' } );
   });
 
+  xit('.upsert(failingColumn, values)', ()=>{
+    var table = Table.create({
+      name: 'foo'
+    });
+
+    var query = table.upsert('email', {
+      email: 'foo@bar.com'
+    , name: 'Foo Bar'
+    });
+
+    assert.equal( query.mosqlQuery.type, 'insert' );
+    assert.equal( query.mosqlQuery.table, 'foo' );
+    assert.deepEqual( query.mosqlQuery.values, {
+      email: 'foo@bar.com'
+    , name: 'Foo Bar'
+    });
+
+    assert.deepEqual( query.mosqlQuery.conflict, {
+      target: { column: 'email' }
+    , action: { update: { email: '$excluded.email$', name: '$excluded.name$' } }
+    });
+  });
+
   it('.remove()', ()=>{
     var table = Table.create({
       name: 'foo'
