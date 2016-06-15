@@ -48,6 +48,26 @@ describe('Database', ()=>{
     assert.equal( table3.queryTransforms.length, 1 );
   });
 
+  it('.adaptTable(...)', ()=>{
+    var db = Database.create().database('testtest');
+
+    class CustomTable extends Table {
+      foo(v){
+        return this.query().where('foo', v)
+      }
+    }
+
+    var customTable1 = new CustomTable({
+      name: 'custom_table_1'
+    , pool: new PGPool({ database: 'test' })
+    });
+
+    var customTable2 = db.adaptTable( customTable1 );
+
+    assert.equal( customTable1.pool.options.database, 'test' );
+    assert.equal( customTable2.pool.options.database, 'testtest' );
+  })
+
   it('.register(...)', ()=>{
     var db = Database.create();
     var table1 = db.table('table1');
@@ -55,7 +75,7 @@ describe('Database', ()=>{
     var db2 = db.register( table1 );
 
     assert.deepEqual( db.tables, {} );
-    assert.equal( db2.table1, table1 );
+    assert( 'table1' in db2 );
 
     var db3 = db2.register({ name: 'table2' });
 
