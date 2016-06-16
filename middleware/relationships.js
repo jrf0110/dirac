@@ -102,7 +102,7 @@ class RelationshipsQueryTransform extends QueryTransform {}
 
 var Relationships = module.exports = options => {
   return database => {
-    var db = new RelationshipsDatabase( database );
+    var db = new RelationshipsDatabase( Object.assign( {}, database, database.options ) );
     db.Query = QueryWithRelationships;
     return db;
   };
