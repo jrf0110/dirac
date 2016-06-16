@@ -52,7 +52,7 @@ describe('Table', ()=>{
     assert.deepEqual( table2.getIdParamWhereClause('byah'), { uuid: 'byah' });
   });
 
-  it('.find()', ()=>{
+  it('.find([{condition}[, {options}]])', ()=>{
     var table = Table.create({
       name: 'foo'
     });
@@ -61,6 +61,19 @@ describe('Table', ()=>{
 
     assert.equal( query.mosqlQuery.type, 'select' );
     assert.equal( query.mosqlQuery.table, 'foo' );
+
+    query = table.find({ foo: 'bar' });
+
+    assert.deepEqual( query.mosqlQuery.where, { foo: 'bar' } );
+
+    query = table.find({ foo: 'bar' }, { limit: 10 });
+
+    assert.deepEqual( query.mosqlQuery, {
+      type: 'select'
+    , table: 'foo'
+    , where: { foo: 'bar' }
+    , limit: 10
+    });
   });
 
   it('.findOne(id)', ()=>{
