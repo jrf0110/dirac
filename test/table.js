@@ -216,4 +216,19 @@ describe('Table', ()=>{
       }
     });
   });
+
+  it('Individual query middleware should not affect all queries from table', ()=>{
+    var table = Table.create({
+      name: 'foo'
+    , schema: { id: { type: 'serial', primarykey: true } }
+    });
+
+    var q1 = table.findOne(123);
+
+    assert.equal( q1.resultsTransforms.length, 1 );
+
+    var q2 = table.find();
+
+    assert.equal( q2.resultsTransforms.length, 0 );
+  });
 });
