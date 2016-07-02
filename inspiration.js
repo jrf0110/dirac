@@ -140,3 +140,52 @@ var query = db.users
 
 // Note: user instanceof UserModel === true
 query.exec().then( user => console.log( user.books[0].name ) )
+
+// Notes on transactions
+// 
+db.transaction()
+  .begin( tx => {
+
+    tx.query(  )
+      .then( ()=> {
+        
+
+        
+      })
+    .then( ()=> tx.commit() )
+  })
+
+// Transactions should behave more like Queries
+// where calling .query(..) simply adds queries to the transaction
+// building up a transaction plan
+// and .execute() would execute that plan
+var createUser = user => {
+  return db.transaction()
+    // Insert base user object
+    .query( tx => db.users.insert(user) )
+    // Insert user's groups with the new user_id assigned
+    .query( tx => {
+      let groups = user.groups.map( group => {
+        return Object.assign( { user_id: tx.user.id }, group )
+      })
+
+      return tx.query( db.user_groups.insert(groups) )
+    })
+}
+
+var createOrder = order => {
+  return db.transaction()
+    // Insert base order
+    .query( tx => db.orders.insert(order) )
+    // Also, update the order_statuses table
+    // This is a bit of a contrived example since you'd probably do this with triggers
+    .query( tx => db.order_statuses.insert({ order_id: tx.order.id,  }))
+}
+
+// This way, you can compose transactions
+createUser(user)
+  .query( tx => createOrder( Object.assign(order, { user_id: tx.user.id } ) ) )
+  .execute()
+  .then( results => {
+    console.log( results.user, results.order );
+  })
