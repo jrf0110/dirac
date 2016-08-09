@@ -172,22 +172,22 @@ var applyOne = function( graph, table_name, $query ){
 
     if ( Array.isArray( main.one ) ){
       main.one.forEach( function( t ){ t.qAlias = t.qAlias || (data.qAlias + 'r'); });
-      applyOne( main.table, main );
+      applyOne( graph, main.table, main );
     }
 
     if ( Array.isArray( main.many ) ){
       main.many.forEach( function( t ){ t.qAlias = t.qAlias || (data.qAlias + 'r'); });
-      applyMany( main.table, main );
+      applyMany( graph, main.table, main );
     }
 
     if ( Array.isArray( main.pluck ) ){
       main.pluck.forEach( function( t ){ t.qAlias = t.qAlias || (data.qAlias + 'r'); });
-      applyPluck( main.table, main );
+      applyPluck( graph, main.table, main );
     }
 
     if ( Array.isArray( main.mixin ) ){
       main.mixin.forEach( function( t ){ t.qAlias = t.qAlias || (data.qAlias + 'r'); });
-      applyMixin( main.table, main );
+      applyMixin( graph, main.table, main );
     }
 
     return {
@@ -274,22 +274,22 @@ var applyMixin = function( graph, table_name, $query ){
 
     if ( Array.isArray( main.one ) ){
       main.one.forEach( function( t ){ t.qAlias = t.qAlias || (data.qAlias + 'r'); });
-      applyOne( main.table, main );
+      applyOne( graph, main.table, main );
     }
 
     if ( Array.isArray( main.many ) ){
       main.many.forEach( function( t ){ t.qAlias = t.qAlias || (data.qAlias + 'r'); });
-      applyMany( main.table, main );
+      applyMany( graph, main.table, main );
     }
 
     if ( Array.isArray( main.pluck ) ){
       main.pluck.forEach( function( t ){ t.qAlias = t.qAlias || (data.qAlias + 'r'); });
-      applyPluck( main.table, main );
+      applyPluck( graph, main.table, main );
     }
 
     if ( Array.isArray( main.mixin ) ){
       main.mixin.forEach( function( t ){ t.qAlias = t.qAlias || (data.qAlias + 'r'); });
-      applyMixin( main.table, main );
+      applyMixin( graph, main.table, main );
     }
 
     return {
@@ -384,22 +384,22 @@ var applyMany = function( graph, table_name, $query ){
 
     if ( Array.isArray( main.one ) ){
       main.one.forEach( function( t ){ t.qAlias = t.qAlias || (data.qAlias + 'r'); });
-      applyOne( main.table, main );
+      applyOne( graph, main.table, main );
     }
 
     if ( Array.isArray( main.many ) ){
       main.many.forEach( function( t ){ t.qAlias = t.qAlias || (data.qAlias + 'r'); });
-      applyMany( main.table, main );
+      applyMany( graph, main.table, main );
     }
 
     if ( Array.isArray( main.pluck ) ){
       main.pluck.forEach( function( t ){ t.qAlias = t.qAlias || (data.qAlias + 'r'); });
-      applyPluck( main.table, main );
+      applyPluck( graph, main.table, main );
     }
 
     if ( Array.isArray( main.mixin ) ){
       main.mixin.forEach( function( t ){ t.qAlias = t.qAlias || (data.qAlias + 'r'); });
-      applyMixin( main.table, main );
+      applyMixin( graph, main.table, main );
     }
 
     return {
@@ -479,22 +479,22 @@ var applyPluck = function( graph, table_name, $query ){
 
     if ( Array.isArray( main.one ) ){
       main.one.forEach( function( t ){ t.qAlias = t.qAlias || (data.qAlias + 'r'); });
-      applyOne( main.table, main );
+      applyOne( graph, main.table, main );
     }
 
     if ( Array.isArray( main.many ) ){
       main.many.forEach( function( t ){ t.qAlias = t.qAlias || (data.qAlias + 'r'); });
-      applyMany( main.table, main );
+      applyMany( graph, main.table, main );
     }
 
     if ( Array.isArray( main.pluck ) ){
       main.pluck.forEach( function( t ){ t.qAlias = t.qAlias || (data.qAlias + 'r'); });
-      applyPluck( main.table, main );
+      applyPluck( graph, main.table, main );
     }
 
     if ( Array.isArray( main.mixin ) ){
       main.mixin.forEach( function( t ){ t.qAlias = t.qAlias || (data.qAlias + 'r'); });
-      applyMixin( main.table, main );
+      applyMixin( graph, main.table, main );
     }
 
     return {
