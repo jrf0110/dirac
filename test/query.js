@@ -207,6 +207,23 @@ describe('Query', ()=>{
     assert.deepEqual( query2.returning(), ['foo'] );
   });
 
+  it('.joins([join])', ()=>{
+    var query1 = Query
+      .create({ type: 'select', table: 'users' });
+
+    assert.equal( query1.joins(), undefined );
+
+    var query2 = query1.joins({
+      target: 'user_books'
+    , on: { user_id: '$users.id$' }
+    });
+
+    assert.equal( query1.joins(), undefined );
+    assert.deepEqual( query2.joins(), [
+      { type: 'left', target: 'user_books', on: { user_id: '$users.id$' } }
+    ]);
+  });
+
   it('.toStringAndValues()', ()=>{
     var query1 = Query.create({
       type: 'select'
