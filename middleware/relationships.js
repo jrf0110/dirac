@@ -254,42 +254,99 @@ var applyOne = function( graph, table_name, $query ){
   });
 };
 
-var applyMixin = function( graph, table_name, $query ){
-  var cid = 1;
+var applyMixin = function(graph, table_name, $query ){
+  var getResults = (table, mixins) => {
+    return mixins
+      .map(mixin => {
+        var targetDal = graph[ mixin.table ];
+        var where = _.extend( {}, mixin.where );
+        var on = _.extend( {}, mixin.on );
+
+        // Immediate dependency not met and not specifying how to get there
+        if ( !targetDal && !mixin.where ){
+          throw new Error( 'Must specify how to relate table `' + table + '` to target `' + mixin.table + '`' );
+        }
+
+        var pivots = [];
+
+        if ( targetDal )
+        if ( targetDal.dependents[ table ] ){
+           pivots = Object.keys( targetDal.dependents[ table ] ).map( function( p ){
+            return {
+              source_col: targetDal.dependents[ table ][ p ]
+            , target_col: p
+            };
+          });
+        }
+
+        if ( targetDal )
+        if ( targetDal.dependencies[ table ] ){
+           pivots = pivots.concat( Object.keys( targetDal.dependencies[ table ] ).map( function( p ){
+            return {
+              source_col: targetDal.dependencies[ table ][ p ]
+            , target_col: p
+            };
+          }));
+        }
+
+        pivots.forEach( function( p ){
+          on[ p.target_col ] = '$' + mosqlUtils.quoteObject( p.source_col, table ) + '$';
+        });
+
+        var join = {
+          type:   'left'
+        , alias:  mixin.alias
+        , target: mixin.table
+        , on:     on
+        };
+
+        var joins = [join]
+        var columns;
+
+        if ( Array.isArray( mixin.columns ) ){
+          columns = mixin.columns.map( function( column ){
+            return typeof column === 'string'
+              ? mosqlUtils.quoteObject( column, mixin.table )
+              : column;
+          })
+        } else {
+          columns = [{ table: mixin.alias || mixin.table, name: '*' }]
+        }
+
+        if (Array.isArray(mixin.mixin)) {
+          const subResult = getResults(mixin.table, mixin.mixin)
+          joins = joins.concat(subResult.joins)
+          columns = columns.concat(subResult.columns)
+        }
+
+        return { joins, columns }
+      })
+      // Flatten nested mixins
+      .reduce((final, individual) => {
+        final.joins = final.joins.concat(individual.joins)
+        final.columns = final.columns.concat(individual.columns)
+        return final
+      }, { columns: [], joins: [] })
+  }
+
+  var results = getResults(table_name, $query.mixin)
+  $query.joins = ($query.joins || []).concat( results.joins );
+  $query.columns = ($query.columns || ['*']).concat( results.columns );
+};
+
+var applyMixinOld = function( graph, table_name, $query ){
   var tmpl = function( data ){
     var where = _.extend( {}, data.where );
     var on = _.extend( {}, data.on );
 
     data.pivots.forEach( function( p ){
-      /*where[ p.target_col ] = */on[ p.target_col ] = '$' + mosqlUtils.quoteObject( p.source_col, data.source ) + '$';
+      on[ p.target_col ] = '$' + mosqlUtils.quoteObject( p.source_col, data.source ) + '$';
     });
 
-    var main = _.extend({
-      type:     'select'
-    , table:    data.target
-    , alias:    data.qAlias
-    , where:    where
-    , limit:    1
-    }, _.omit( data, ['table', 'pivots', 'target', 'source', 'where', 'on'] ));
+    var results = []
 
-    if ( Array.isArray( main.one ) ){
-      main.one.forEach( function( t ){ t.qAlias = t.qAlias || (data.qAlias + 'r'); });
-      applyOne( graph, main.table, main );
-    }
-
-    if ( Array.isArray( main.many ) ){
-      main.many.forEach( function( t ){ t.qAlias = t.qAlias || (data.qAlias + 'r'); });
-      applyMany( graph, main.table, main );
-    }
-
-    if ( Array.isArray( main.pluck ) ){
-      main.pluck.forEach( function( t ){ t.qAlias = t.qAlias || (data.qAlias + 'r'); });
-      applyPluck( graph, main.table, main );
-    }
-
-    if ( Array.isArray( main.mixin ) ){
-      main.mixin.forEach( function( t ){ t.qAlias = t.qAlias || (data.qAlias + 'r'); });
-      applyMixin( graph, main.table, main );
+    if ( Array.isArray( data.mixin ) ){
+      applyMixin( graph, data.target, data );
     }
 
     return {
@@ -363,7 +420,7 @@ var applyMixin = function( graph, table_name, $query ){
     }
 
 
-    $query.joins.push( tmpl( context ) );
+    $query.joins = $query.joins.concat( tmpl( context ) );
   });
 };
 

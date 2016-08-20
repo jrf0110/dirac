@@ -80,6 +80,16 @@ describe('Relationships', ()=>{
         { table: 'users' }
       , { table: 'orders' }
       ]);
+
+      var query3 = Relationships.Query.create( {}, { pool } )
+        .mixin({
+          table: 'users'
+        , mixin: [{ table: 'poops' }]
+        });
+
+      assert.deepEqual( query3.mosqlQuery.mixin, [
+        { table: 'users', mixin: [{ table: 'poops' }] }
+      ]);
     });
 
     it('.pluck(...)', ()=>{
@@ -259,6 +269,7 @@ describe('Relationships', ()=>{
         name: 'books'
       , schema: {
           id: { type: 'serial', primaryKey: true }
+        , author_id: { type: 'int', references: { table: 'users', column: 'id' } }
         , name: { type: 'text' }
         }
       })
@@ -296,6 +307,54 @@ describe('Relationships', ()=>{
         "*",
         {
           "table": "books",
+          "name": "*"
+        }
+      ]
+    });
+
+    var query2 = db.user_books.find()
+      .mixin({
+        table: 'books'
+      , mixin: [{ table: 'users' }]
+      });
+
+    assert.equal( query2.queryTransforms.length, 1 );
+
+    assert.deepEqual( query2.getTransformedQuery().mosqlQuery, {
+      "type": "select",
+      "table": "user_books",
+      "mixin": [
+        {
+          "table": "books",
+          "mixin": [{ table: 'users' }]
+        }
+      ],
+      "joins": [
+        {
+          "type": "left",
+          "target": "books",
+          "alias": undefined,
+          "on": {
+            "id": "$\"user_books\".\"book_id\"$"
+          }
+        },
+        {
+          "type": "left",
+          "target": "users",
+          "alias": undefined,
+          "on": {
+            id: '$"books"."author_id"$'
+          }
+        }
+      ],
+      "columns": [
+        "*",
+        {
+          "table": "books",
+          "name": "*"
+        },
+        {
+          "table": "users",
           "name": "*"
         }
       ]
