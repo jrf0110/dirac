@@ -134,6 +134,14 @@ describe('Table', ()=>{
     assert.equal( query.mosqlQuery.type, 'insert' );
     assert.equal( query.mosqlQuery.table, 'foo' );
     assert.deepEqual( query.mosqlQuery.values, { bar: 'baz' } );
+    assert.deepEqual( query.getTransformedResult([{ bar: 'baz' }]), { bar: 'baz' })
+
+    query = table.insert([{ bar: 'baz' }, { foo: 'bar' }]);
+
+    assert.equal( query.mosqlQuery.type, 'insert' );
+    assert.equal( query.mosqlQuery.table, 'foo' );
+    assert.deepEqual( query.mosqlQuery.values, [{ bar: 'baz' }, { foo: 'bar' }] );
+    assert.deepEqual( query.getTransformedResult([1, 2]), [1, 2] );
   });
 
   xit('.upsert(failingColumn, values)', ()=>{
