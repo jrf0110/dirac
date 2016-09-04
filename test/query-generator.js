@@ -99,6 +99,19 @@ describe('QueryGenerator', ()=>{
       foo: 'bar'
     , bar: { baz: 'foo' }
     });
+
+    var generator2 = generator1
+      .before( query => {
+        return query.clone().mutate(query => {
+          query.mosqlQuery.where = { byah: true }
+        })
+      })
+
+    var query2 = generator2.query()
+
+    assert.deepEqual( query2.getTransformedQuery().mosqlQuery.where, {
+      byah: true
+    });
   });
 
   it('.before( transform[] )', ()=>{

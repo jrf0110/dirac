@@ -110,25 +110,23 @@ var Relationships = module.exports = options => {
 
 module.exports.Transform = graph => {
   return RelationshipsQueryTransform.create( query => {
-    query = query.instance();
-
     let tableName = query.table();
     let $query = query.mosqlQuery;
 
     if ( Array.isArray( $query.many ) ){
-      return applyMany( graph, tableName, $query );
+      applyMany( graph, tableName, $query );
     }
 
     if ( Array.isArray( $query.one ) ){
-      return applyOne( graph, tableName, $query );
+      applyOne( graph, tableName, $query );
     }
 
     if ( Array.isArray( $query.pluck ) ){
-      return applyPluck( graph, tableName, $query );
+      applyPluck( graph, tableName, $query );
     }
 
     if ( Array.isArray( $query.mixin ) ){
-      return applyMixin( graph, tableName, $query );
+      applyMixin( graph, tableName, $query );
     }
 
     return query;
