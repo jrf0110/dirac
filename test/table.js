@@ -252,4 +252,18 @@ describe('Table', ()=>{
 
     assert.equal( q2.resultsTransforms.length, 0 );
   });
+
+  it('When cloning a table, pool should be passed', ()=>{
+    var table = TableOriginal.create({
+      name: 'foo'
+    , schema: { id: { type: 'serial', primarykey: true } }
+    , pool
+    });
+
+    assert.equal( table.pool, pool );
+
+    var table2 = table.clone()
+
+    assert.equal( table2.pool, pool );
+  });
 });
