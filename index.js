@@ -1,13 +1,18 @@
-var dirac = module.exports = require('./lib/dirac');
-var utils = require('./lib/utils');
-var diracSchema = require('./lib/dirac-table');
+const Database = require('./lib/database');
+const relationships = require('./middleware/relationships');
+const Query = require('./lib/query');
+const Table = require('./lib/query');
 
-// Database Access
-dirac.db            = require('./lib/db');
+module.exports = options => {
+  if ( typeof options === 'string' ){
+    options = { connectionString: options };
+  }
 
-// Middleware
-dirac.tableRef      = require('./middleware/table-ref');
-dirac.castToJSON    = require('./middleware/cast-to-json');
-dirac.embeds        = require('./middleware/embeds');
-dirac.dir           = require('./middleware/dir');
-dirac.relationships = require('./middleware/relationships');
+  return Database
+    .create( options )
+    .use( relationships() );
+};
+
+module.exports.relationships = relationships;
+module.exports.query = ( q, options )=> Query.create( q, options );
+module.exports.table = options => Table.create( options );
